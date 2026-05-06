@@ -1,0 +1,8 @@
+.env
+not-publish.txt
+backups/
+*.pg_dump
+*.sql.gz
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,4 @@
+product_tmpl_id/id,type,bom_line_ids/product_id,bom_line_ids/product_qty,code
+inter_bollo,phantom,Harina 000,0.3,Fórmula Masa Base
+inter_bollo,phantom,Agua Filtrada,0.18,Fórmula Masa Base
+inter_bollo,phantom,Levadura Fresca,0.005,Fórmula Masa Base

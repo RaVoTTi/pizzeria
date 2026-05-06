@@ -1,0 +1,2 @@
+id,name,category_id/id,uom_type,factor_inv,rounding
+uom_pinta,Pinta,uom.product_uom_categ_vol,Volumen,2,0.01
