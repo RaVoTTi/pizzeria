@@ -10,3 +10,4 @@ cat_bebidas,Bebidas sin Alcohol,cat_venta
 cat_birra_venta,Cerveza Barra,cat_venta
 cat_pizzas,Pizzas,cat_venta
 cat_delivery,Deliveries,cat_venta
+cat_mitades,Mitades,cat_venta

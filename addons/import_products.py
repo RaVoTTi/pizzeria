@@ -65,6 +65,7 @@ def get_categ_id(env, categ_ref, cat_ids):
         'cat_bebidas': 'Bebidas sin Alcohol',
         'cat_birra_venta': 'Cerveza Barra',
         'cat_pizzas': 'Pizzas',
+        'cat_mitades': 'Mitades',
         'cat_delivery': 'Deliveries',
         'cat_all': 'Todos',
     }
@@ -184,13 +185,14 @@ for row in all_product_rows:
         'name': name,
         'categ_id': categ_id,
         'type': product_type,
+        'is_storable': product_type != 'service',
         'uom_id': uom_id,
         'standard_price': standard_price,
         'list_price': list_price,
         'sale_ok': list_price > 0,
         'purchase_ok': True,
         'available_in_pos': list_price > 0 and product_type != 'service',
-        'taxes_id': [(6, 0, [])],  # No sale taxes (pizzeria prices include IVA)
+        'taxes_id': [(6, 0, [])],
     }
 
     image_data = encode_image(row.get('image_1920', ''))
@@ -312,6 +314,7 @@ print("\n[6/6] Setting up POS categories...")
 # Create POS categories and assign products to hide demo products
 pos_categ_mapping = {
     'Pizzas': 'Pizzas',
+    'Mitades': 'Mitades',
     'Cerveza Barra': 'Cerveza',
     'Bebidas sin Alcohol': 'Bebidas',
     'VENTAS': 'Empanadas',

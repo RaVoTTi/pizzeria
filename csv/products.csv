@@ -66,7 +66,25 @@ piz_anana,Anana,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anana.
 piz_anchoas,Anchoas,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anchoas.jpeg
 piz_super_gordo,Super gordo (fugazzeta rellena),cat_pizzas,product,Unidades,0,27000,PEGAR_LINK_AQUI
 promo_2_muzza,PROMO 2 Mozzarellas,cat_pizzas,product,Unidades,0,22000,PEGAR_LINK_AQUI
-piz_mitad_mitad,🍕 Mitad y Mitad,cat_pizzas,product,Unidades,0,12000,
+mit_muzza,½ Mozzarella,cat_mitades,product,Unidades,0,6000,
+mit_especial,½ Especial,cat_mitades,product,Unidades,0,7000,/images/productos/piz_especial.jpg
+mit_4q_ahum,½ Cuatro quesos ahumado,cat_mitades,product,Unidades,0,7000,/images/productos/piz_4q_ahum.jpg
+mit_cuatro_quesos,½ Cuatro Quesos,cat_mitades,product,Unidades,0,7000,/images/productos/piz_cuatro_quesos.jpg
+mit_rucula_cru,½ Rucula y jamon crudo,cat_mitades,product,Unidades,0,7000,/images/productos/piz_rucula_cru.png
+mit_rucula_veg,½ Rucula veggie,cat_mitades,product,Unidades,0,7000,
+mit_napo_ajo,½ Napolitana con ajo,cat_mitades,product,Unidades,0,7000,
+mit_napo_veg,½ Napolitana vegana,cat_mitades,product,Unidades,0,7000,
+mit_peperoni,½ Pepperoni,cat_mitades,product,Unidades,0,7000,/images/productos/piz_peperoni.jpg
+mit_fugazzeta,½ Fugazzeta,cat_mitades,product,Unidades,0,7000,
+mit_grinch,½ Grinch (fugazzeta con pesto),cat_mitades,product,Unidades,0,7000,/images/productos/piz_grinch.png
+mit_caprese,½ Caprese,cat_mitades,product,Unidades,0,8500,
+mit_borromeo,½ Borromeo (panceta),cat_mitades,product,Unidades,0,8500,/images/productos/piz_borromeo.jpeg
+mit_super_pesto,½ Super Pesto,cat_mitades,product,Unidades,0,8500,
+mit_champi,½ Champignon,cat_mitades,product,Unidades,0,8500,/images/productos/piz_champi.jpg
+mit_champi_veg,½ Champignon veggie,cat_mitades,product,Unidades,0,8500,
+mit_palmitos,½ Palmitos y jamon,cat_mitades,product,Unidades,0,9000,/images/productos/piz_palmitos.jpg
+mit_anana,½ Anana,cat_mitades,product,Unidades,0,9000,/images/productos/piz_anana.jpg
+mit_anchoas,½ Anchoas,cat_mitades,product,Unidades,0,9000,/images/productos/piz_anchoas.jpeg
 venta_pinta_gold,Pinta Golden,cat_birra_venta,product,Pinta,0,4500,/images/productos/venta_pinta_gold.png
 venta_litro_gold,Recarga 1 Litro Golden,cat_birra_venta,product,Unidades,0,8000,/images/productos/venta_litro_gold.jpg
 venta_pinta_roja,Pinta Roja,cat_birra_venta,product,Pinta,0,4800,/images/productos/venta_pinta_roja.jpg

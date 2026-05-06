@@ -86,3 +86,82 @@ promo_2_muzza,phantom,Bollo de Masa (Pre-pizza),2,Promo 2 Muzzas V2
 promo_2_muzza,phantom,Muzzarella Cilindro,0.56,Promo 2 Muzzas V2
 promo_2_muzza,phantom,Salsa de Tomate Base,0.2,Promo 2 Muzzas V2
 promo_2_muzza,phantom,Aceitunas Verdes,0.1,Promo 2 Muzzas V2
+mit_muzza,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Mozzarella V2
+mit_muzza,phantom,Muzzarella Cilindro,0.14,Receta ½ Mozzarella V2
+mit_muzza,phantom,Salsa de Tomate Base,0.05,Receta ½ Mozzarella V2
+mit_muzza,phantom,Aceitunas Verdes,0.025,Receta ½ Mozzarella V2
+mit_especial,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Especial V2
+mit_especial,phantom,Muzzarella Cilindro,0.14,Receta ½ Especial V2
+mit_especial,phantom,Salsa de Tomate Base,0.05,Receta ½ Especial V2
+mit_especial,phantom,Jamón Cocido Natural,0.05,Receta ½ Especial V2
+mit_especial,phantom,Morrones en Conserva,0.025,Receta ½ Especial V2
+mit_4q_ahum,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ 4 Quesos Ahum V2
+mit_4q_ahum,phantom,Muzzarella Cilindro,0.075,Receta ½ 4 Quesos Ahum V2
+mit_4q_ahum,phantom,Queso Provolone,0.025,Receta ½ 4 Quesos Ahum V2
+mit_4q_ahum,phantom,Queso Roquefort,0.025,Receta ½ 4 Quesos Ahum V2
+mit_4q_ahum,phantom,Queso Parmesano Rallado,0.025,Receta ½ 4 Quesos Ahum V2
+mit_cuatro_quesos,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Cuatro Quesos V2
+mit_cuatro_quesos,phantom,Muzzarella Cilindro,0.075,Receta ½ Cuatro Quesos V2
+mit_cuatro_quesos,phantom,Queso Provolone,0.025,Receta ½ Cuatro Quesos V2
+mit_cuatro_quesos,phantom,Queso Roquefort,0.025,Receta ½ Cuatro Quesos V2
+mit_cuatro_quesos,phantom,Queso Parmesano Rallado,0.025,Receta ½ Cuatro Quesos V2
+mit_rucula_cru,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Rucula Crudo V2
+mit_rucula_cru,phantom,Muzzarella Cilindro,0.14,Receta ½ Rucula Crudo V2
+mit_rucula_cru,phantom,Salsa de Tomate Base,0.05,Receta ½ Rucula Crudo V2
+mit_rucula_cru,phantom,Rúcula Fresca,0.04,Receta ½ Rucula Crudo V2
+mit_rucula_cru,phantom,Jamón Crudo,0.05,Receta ½ Rucula Crudo V2
+mit_rucula_veg,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Rucula Veggie V2
+mit_rucula_veg,phantom,Salsa de Tomate Base,0.05,Receta ½ Rucula Veggie V2
+mit_rucula_veg,phantom,Rúcula Fresca,0.06,Receta ½ Rucula Veggie V2
+mit_rucula_veg,phantom,Tomates Cherry,0.05,Receta ½ Rucula Veggie V2
+mit_napo_ajo,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Napo Ajo V2
+mit_napo_ajo,phantom,Muzzarella Cilindro,0.125,Receta ½ Napo Ajo V2
+mit_napo_ajo,phantom,Salsa de Tomate Base,0.05,Receta ½ Napo Ajo V2
+mit_napo_ajo,phantom,Tomates Cherry,0.075,Receta ½ Napo Ajo V2
+mit_napo_ajo,phantom,Ajo Triturado,0.01,Receta ½ Napo Ajo V2
+mit_napo_veg,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Napo Vegana V2
+mit_napo_veg,phantom,Salsa de Tomate Base,0.05,Receta ½ Napo Vegana V2
+mit_napo_veg,phantom,Tomates Cherry,0.1,Receta ½ Napo Vegana V2
+mit_napo_veg,phantom,Ajo Triturado,0.01,Receta ½ Napo Vegana V2
+mit_peperoni,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Pepperoni V2
+mit_peperoni,phantom,Muzzarella Cilindro,0.14,Receta ½ Pepperoni V2
+mit_peperoni,phantom,Salsa de Tomate Base,0.05,Receta ½ Pepperoni V2
+mit_peperoni,phantom,Pepperoni Rodajas,0.04,Receta ½ Pepperoni V2
+mit_fugazzeta,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Fugazzeta V2
+mit_fugazzeta,phantom,Muzzarella Cilindro,0.15,Receta ½ Fugazzeta V2
+mit_fugazzeta,phantom,Cebolla Blanca,0.125,Receta ½ Fugazzeta V2
+mit_grinch,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Grinch V2
+mit_grinch,phantom,Muzzarella Cilindro,0.15,Receta ½ Grinch V2
+mit_grinch,phantom,Cebolla Blanca,0.1,Receta ½ Grinch V2
+mit_grinch,phantom,Salsa Pesto (Casera),0.025,Receta ½ Grinch V2
+mit_caprese,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Caprese V2
+mit_caprese,phantom,Muzzarella Cilindro,0.14,Receta ½ Caprese V2
+mit_caprese,phantom,Tomates Cherry,0.075,Receta ½ Caprese V2
+mit_caprese,phantom,Albahaca Fresca,0.015,Receta ½ Caprese V2
+mit_borromeo,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Borromeo V2
+mit_borromeo,phantom,Muzzarella Cilindro,0.14,Receta ½ Borromeo V2
+mit_borromeo,phantom,Salsa de Tomate Base,0.05,Receta ½ Borromeo V2
+mit_borromeo,phantom,Panceta Ahumada (Bacon),0.05,Receta ½ Borromeo V2
+mit_super_pesto,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Super Pesto V2
+mit_super_pesto,phantom,Muzzarella Cilindro,0.14,Receta ½ Super Pesto V2
+mit_super_pesto,phantom,Salsa Pesto (Casera),0.05,Receta ½ Super Pesto V2
+mit_champi,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Champi V2
+mit_champi,phantom,Muzzarella Cilindro,0.14,Receta ½ Champi V2
+mit_champi,phantom,Salsa de Tomate Base,0.05,Receta ½ Champi V2
+mit_champi,phantom,Champiñones Frescos,0.06,Receta ½ Champi V2
+mit_champi_veg,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Champi Veg V2
+mit_champi_veg,phantom,Salsa de Tomate Base,0.05,Receta ½ Champi Veg V2
+mit_champi_veg,phantom,Champiñones Frescos,0.075,Receta ½ Champi Veg V2
+mit_palmitos,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Palmitos V2
+mit_palmitos,phantom,Muzzarella Cilindro,0.14,Receta ½ Palmitos V2
+mit_palmitos,phantom,Salsa de Tomate Base,0.05,Receta ½ Palmitos V2
+mit_palmitos,phantom,Jamón Cocido Natural,0.05,Receta ½ Palmitos V2
+mit_palmitos,phantom,Palmitos (Lata/Kg),0.05,Receta ½ Palmitos V2
+mit_anana,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Anana V2
+mit_anana,phantom,Muzzarella Cilindro,0.14,Receta ½ Anana V2
+mit_anana,phantom,Salsa de Tomate Base,0.05,Receta ½ Anana V2
+mit_anana,phantom,Jamón Cocido Natural,0.05,Receta ½ Anana V2
+mit_anana,phantom,Ananá en Rodajas,0.05,Receta ½ Anana V2
+mit_anchoas,phantom,Bollo de Masa (Pre-pizza),0.5,Receta ½ Anchoas V2
+mit_anchoas,phantom,Salsa de Tomate Base,0.075,Receta ½ Anchoas V2
+mit_anchoas,phantom,Anchoas (Filet),0.04,Receta ½ Anchoas V2

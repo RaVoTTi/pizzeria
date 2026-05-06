@@ -354,7 +354,11 @@ env.cr.commit()
 print("\n  Cleaning up old server actions (no longer needed)...")
 
 ServerAction = env['ir.actions.server']
-BaseAutomation = env['base.automation']
+try:
+    BaseAutomation = env['base.automation']
+except KeyError:
+    BaseAutomation = None
+    print("  Module base_automation not installed, skipping automation cleanup")
 
 removed = 0
 for action_name in ['Mitad y Mitad - MAX Pricing', 'Mitad y Mitad - Stock Deduction']:
@@ -363,11 +367,12 @@ for action_name in ['Mitad y Mitad - MAX Pricing', 'Mitad y Mitad - Stock Deduct
         removed += 1
         print(f"  Removed server action: {action_name}")
 
-for auto_name in ['Mitad y Mitad - Price on Create', 'Mitad y Mitad - Price on Write', 'Mitad y Mitad - Stock on Paid']:
-    for auto in BaseAutomation.search([('name', '=', auto_name)]):
-        auto.unlink()
-        removed += 1
-        print(f"  Removed automation: {auto_name}")
+if BaseAutomation:
+    for auto_name in ['Mitad y Mitad - Price on Create', 'Mitad y Mitad - Price on Write', 'Mitad y Mitad - Stock on Paid']:
+        for auto in BaseAutomation.search([('name', '=', auto_name)]):
+            auto.unlink()
+            removed += 1
+            print(f"  Removed automation: {auto_name}")
 
 if removed:
     env.cr.commit()

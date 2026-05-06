@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "POS Half & Half Pizza Pricing",
-    "version": "19.0.1.0.0",
+    "version": "19.0.2.0.0",
     "category": "Point of Sale",
     "summary": "MAX pricing for Mitad y Mitad (half & half) pizzas in POS",
     "description": """
@@ -23,15 +23,9 @@
     """,
     "license": "LGPL-3",
     "author": "Pizzeria El Gordo",
-    "website": "",
-    "license": "LGPL-3",
     "depends": ["point_of_sale"],
     "data": [],
-    "assets": {
-        "point_of_sale.assets": [
-            "pos_half_pizza/static/src/js/pos_half_pizza.js",
-        ],
-    },
+    "assets": {},
     "installable": True,
     "application": False,
     "auto_install": False,

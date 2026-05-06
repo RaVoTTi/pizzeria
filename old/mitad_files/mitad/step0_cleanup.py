@@ -38,16 +38,21 @@ if mitad:
 # Remove server actions
 print("\n  [4/4] Removing server actions...")
 ServerAction = env['ir.actions.server']
-BaseAutomation = env['base.automation']
+try:
+    BaseAutomation = env['base.automation']
+except KeyError:
+    BaseAutomation = None
+    print("    Module base_automation not installed, skipping automation cleanup")
 for name in ['Mitad y Mitad - MAX Pricing', 'Mitad y Mitad - Stock Deduction']:
     for a in ServerAction.search([('name', '=', name)]):
         a.unlink()
         print(f"    ✓ Removed: {name}")
 
-for name in ['Mitad y Mitad - Price on Create', 'Mitad y Mitad - Price on Write', 'Mitad y Mitad - Stock on Paid']:
-    for a in BaseAutomation.search([('name', '=', name)]):
-        a.unlink()
-        print(f"    ✓ Removed: {name}")
+if BaseAutomation:
+    for name in ['Mitad y Mitad - Price on Create', 'Mitad y Mitad - Price on Write', 'Mitad y Mitad - Stock on Paid']:
+        for a in BaseAutomation.search([('name', '=', name)]):
+            a.unlink()
+            print(f"    ✓ Removed: {name}")
 
 env.cr.commit()
 
