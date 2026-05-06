@@ -27,12 +27,14 @@ except KeyError:
     print("    docker compose run --rm web odoo server -c /etc/odoo/odoo.conf -d elgordo -i pos_restaurant --stop-after-init")
     exit(1)
 
-# Get POS config
+# Get or create POS config
 pos_config = env['pos.config'].search([], limit=1)
 if not pos_config:
-    print("\n  ERROR: No POS config found!")
-    print("  Create a POS config first in the UI: Point of Sale → Configuration → Settings")
-    exit(1)
+    print("\n  No POS config found, creating one...")
+    pos_config = env['pos.config'].create({
+        'name': 'Pizzeria El Gordo',
+    })
+    print(f"  Created POS config: {pos_config.name} (id={pos_config.id})")
 
 print(f"\n  POS Config: {pos_config.name}")
 

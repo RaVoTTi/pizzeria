@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="pos_mitad_configurator.MitadConfiguratorPopup">
+        <Dialog title="title" size="" fullscreen="true">
+            <div class="mitad-configurator">
+                <div class="mitad-header">
+                    <t t-if="state.step === 1">
+                        <h2>Selecciona la 1ra Mitad</h2>
+                        <p class="subtitle">Elige el primer sabor</p>
+                    </t>
+                    <t t-else="">
+                        <div class="selected-badge">
+                            <span class="badge lado-a-label">Lado A</span>
+                            <span class="badge-text" t-esc="state.ladoA.valueName"/>
+                        </div>
+                        <h2>Selecciona la 2da Mitad</h2>
+                        <p class="subtitle">Elige el segundo sabor</p>
+                    </t>
+                </div>
+
+                <div class="pizza-grid-container">
+                    <div class="pizza-grid">
+                        <t t-foreach="state.pizzas" t-as="pizza" t-key="pizza.valueId">
+                            <div
+                                class="pizza-tile"
+                                t-on-click="() => selectPizza(pizza)"
+                                t-att-class="{
+                                    'selected-a': state.ladoA and state.ladoA.valueId === pizza.valueId,
+                                    'selected-b': state.ladoB and state.ladoB.valueId === pizza.valueId,
+                                    'disabled': state.step === 2 and state.ladoA and state.ladoA.valueId === pizza.valueId,
+                                }"
+                            >
+                                <div class="tile-image">
+                                    <img
+                                        t-if="pizza.hasImage"
+                                        t-att-src="'/web/image/product.product/' + pizza.imageId + '/image_128'"
+                                        alt=""
+                                    />
+                                    <div t-else="" class="no-image">&#x1F355;</div>
+                                </div>
+
+                                <div class="tile-info">
+                                    <div class="pizza-name" t-esc="pizza.valueName"/>
+                                    <div class="pizza-price" t-esc="formatCurrency(pizza.price)"/>
+                                </div>
+
+                                <t t-if="state.ladoA and state.ladoA.valueId === pizza.valueId">
+                                    <div class="side-badge side-a">A</div>
+                                </t>
+                                <t t-if="state.ladoB and state.ladoB.valueId === pizza.valueId">
+                                    <div class="side-badge side-b">B</div>
+                                </t>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <t t-set-slot="footer">
+                    <div class="mitad-footer">
+                        <t t-if="state.step === 2">
+                            <button class="btn-back" t-on-click="back">
+                                &#x2190; Cambiar Lado A
+                            </button>
+                        </t>
+
+                        <t t-if="state.ladoA and state.ladoB">
+                            <div class="price-breakdown">
+                                <div class="price-row">
+                                    <span t-esc="state.ladoA.valueName"/>
+                                    <span t-esc="formatCurrency(state.ladoA.price)"/>
+                                </div>
+                                <div class="price-row">
+                                    <span t-esc="state.ladoB.valueName"/>
+                                    <span t-esc="formatCurrency(state.ladoB.price)"/>
+                                </div>
+                                <div class="price-row final">
+                                    <span>Precio</span>
+                                    <span class="max-price" t-esc="formatCurrency(finalPrice)"/>
+                                </div>
+                            </div>
+                        </t>
+
+                        <div class="footer-actions">
+                            <button class="btn-cancel" t-on-click="cancel">Cancelar</button>
+                            <button
+                                class="btn-confirm"
+                                t-on-click="confirm"
+                                t-att-disabled="!state.ladoA || !state.ladoB"
+                            >
+                                A&#xF1;adir
+                            </button>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </Dialog>
+    </t>
+
+</templates>

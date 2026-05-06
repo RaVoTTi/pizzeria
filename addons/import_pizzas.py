@@ -1,5 +1,6 @@
 import csv
 import os
+import base64
 import logging
 import odoo
 
@@ -143,7 +144,13 @@ def get_uom_id_wrapped(env, name):
         return PINTA_UOM_ID
     return get_uom_id(env, name)
 
-DUMMY_IMAGE = False
+def encode_image(image_path):
+    if not image_path or image_path == 'PEGAR_LINK_AQUI':
+        return False
+    if os.path.isfile(image_path):
+        with open(image_path, 'rb') as f:
+            return base64.b64encode(f.read())
+    return False
 
 print("\n[3/6] Creating product categories...")
 cat_rows = csv_rows('categories.csv')
@@ -193,7 +200,12 @@ for row in all_product_rows:
     if existing:
         product_ids[external_id] = existing.id
         product_by_name[name] = existing.id
-        print(f"  Product exists: {name} (id={existing.id})")
+        image_data = encode_image(row.get('image_1920', ''))
+        if image_data:
+            existing.write({'image_1920': image_data})
+            print(f"  Product exists + image updated: {name} (id={existing.id})")
+        else:
+            print(f"  Product exists: {name} (id={existing.id})")
         continue
 
     categ_id = get_categ_id(env, categ_ref, cat_ids)
@@ -217,6 +229,10 @@ for row in all_product_rows:
         'purchase_ok': True,
         'available_in_pos': list_price > 0 and detailed_type != 'service',
     }
+
+    image_data = encode_image(row.get('image_1920', ''))
+    if image_data:
+        vals['image_1920'] = image_data
 
     rec = env['product.template'].create(vals)
     product_ids[external_id] = rec.id

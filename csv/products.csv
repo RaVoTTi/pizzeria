@@ -39,38 +39,40 @@ gas_7up_15,7up 1.5L,cat_bebidas,product,Unidades,1700,3400,PEGAR_LINK_AQUI
 gas_7up_225,7up 2.25L,cat_bebidas,product,Unidades,2400,4400,PEGAR_LINK_AQUI
 gas_agua_cg_15,Agua con Gas 1.5L,cat_bebidas,product,Unidades,1000,2000,PEGAR_LINK_AQUI
 gas_agua_sg_15,Agua sin Gas 1.5L,cat_bebidas,product,Unidades,1000,2000,PEGAR_LINK_AQUI
-emp_carne,Empanada Carne,cat_venta,product,Unidades,500,1200,PEGAR_LINK_AQUI
-emp_jyq,Empanada Jamón y Queso,cat_venta,product,Unidades,500,1200,PEGAR_LINK_AQUI
+emp_carne,Empanada Carne,cat_venta,product,Unidades,500,1200,/images/productos/emp_carne.jpeg
+emp_jyq,Empanada Jamón y Queso,cat_venta,product,Unidades,500,1200,/images/productos/emp_jyq.png
 emp_verdura,Empanada Verdura,cat_venta,product,Unidades,500,1200,PEGAR_LINK_AQUI
-emp_matambre,Empanada Matambrito,cat_venta,product,Unidades,600,1400,PEGAR_LINK_AQUI
-emp_cheesa,Empanada Cheeseburger,cat_venta,product,Unidades,600,1400,PEGAR_LINK_AQUI
-emp_pollo,Empanada Pollo,cat_venta,product,Unidades,550,1300,PEGAR_LINK_AQUI
+emp_matambre,Empanada Matambrito,cat_venta,product,Unidades,600,1400,/images/productos/emp_matambre.jpg
+emp_cheesa,Empanada Cheeseburger,cat_venta,product,Unidades,600,1400,/images/productos/emp_cheesa.jpg
+emp_pollo,Empanada Pollo,cat_venta,product,Unidades,550,1300,/images/productos/emp_pollo.jpg
 piz_muzza,Mozzarella,cat_pizzas,product,Unidades,0,12000,PEGAR_LINK_AQUI
-piz_especial,Especial,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_4q_ahum,Cuatro quesos ahumado,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_rucula_cru,Rucula y jamon crudo,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
+piz_especial,Especial,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_especial.jpg
+piz_4q_ahum,Cuatro quesos ahumado,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_4q_ahum.jpg
+piz_cuatro_quesos,Cuatro Quesos,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_cuatro_quesos.jpg
+piz_rucula_cru,Rucula y jamon crudo,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_rucula_cru.png
 piz_rucula_veg,Rucula veggie,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
 piz_napo_ajo,Napolitana con ajo,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
 piz_napo_veg,Napolitana vegana,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_peperoni,Pepperoni,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
+piz_peperoni,Pepperoni,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_peperoni.jpg
 piz_fugazzeta,Fugazzeta,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_grinch,Grinch (fugazzeta con pesto),cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
+piz_grinch,Grinch (fugazzeta con pesto),cat_pizzas,product,Unidades,0,14000,/images/productos/piz_grinch.png
 piz_caprese,Caprese,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
-piz_borromeo,Borromeo (panceta),cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
+piz_borromeo,Borromeo (panceta),cat_pizzas,product,Unidades,0,17000,/images/productos/piz_borromeo.jpeg
 piz_super_pesto,Super Pesto,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
-piz_champi,Champignon,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
+piz_champi,Champignon,cat_pizzas,product,Unidades,0,17000,/images/productos/piz_champi.jpg
 piz_champi_veg,Champignon veggie,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
-piz_palmitos,Palmitos y jamon,cat_pizzas,product,Unidades,0,18000,PEGAR_LINK_AQUI
-piz_anana,Anana,cat_pizzas,product,Unidades,0,18000,PEGAR_LINK_AQUI
-piz_anchoas,Anchoas,cat_pizzas,product,Unidades,0,18000,PEGAR_LINK_AQUI
+piz_palmitos,Palmitos y jamon,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_palmitos.jpg
+piz_anana,Anana,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anana.jpg
+piz_anchoas,Anchoas,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anchoas.jpeg
 piz_super_gordo,Super gordo (fugazzeta rellena),cat_pizzas,product,Unidades,0,27000,PEGAR_LINK_AQUI
 promo_2_muzza,PROMO 2 Mozzarellas,cat_pizzas,product,Unidades,0,22000,PEGAR_LINK_AQUI
-venta_pinta_gold,Pinta Golden,cat_birra_venta,product,Pinta,0,4500,
-venta_litro_gold,Recarga 1 Litro Golden,cat_birra_venta,product,Unidades,0,8000,
-venta_pinta_roja,Pinta Roja,cat_birra_venta,product,Pinta,0,4800,
-venta_litro_roja,Recarga 1 Litro Roja,cat_birra_venta,product,Unidades,0,8500,
-venta_pinta_negra,Pinta Negra,cat_birra_venta,product,Pinta,0,5000,
-venta_litro_negra,Recarga 1 Litro Negra,cat_birra_venta,product,Unidades,0,9000,
+piz_mitad_mitad,🍕 Mitad y Mitad,cat_pizzas,product,Unidades,0,12000,
+venta_pinta_gold,Pinta Golden,cat_birra_venta,product,Pinta,0,4500,/images/productos/venta_pinta_gold.png
+venta_litro_gold,Recarga 1 Litro Golden,cat_birra_venta,product,Unidades,0,8000,/images/productos/venta_litro_gold.jpg
+venta_pinta_roja,Pinta Roja,cat_birra_venta,product,Pinta,0,4800,/images/productos/venta_pinta_roja.jpg
+venta_litro_roja,Recarga 1 Litro Roja,cat_birra_venta,product,Unidades,0,8500,/images/productos/venta_litro_roja.png
+venta_pinta_negra,Pinta Negra,cat_birra_venta,product,Pinta,0,5000,/images/productos/venta_pinta_negra.jpg
+venta_litro_negra,Recarga 1 Litro Negra,cat_birra_venta,product,Unidades,0,9000,/images/productos/venta_litro_negra.jpg
 serv_delivery,Costo de Envío,cat_delivery,service,Unidades,0,1500,
 ins_cebolla,Cebolla Blanca,cat_mp,product,kg,800,0,
 ins_jamon_crudo,Jamón Crudo,cat_mp,product,kg,18000,0,

@@ -28,7 +28,10 @@ docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addon
 # 6. Optional: Setup restaurant floor plans
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_floors.py
 
-# 7. Access Odoo at http://elgordo.local (admin password in config/odoo.conf)
+# 7. Optional: Setup Mitad y Mitad (half & half pizzas)
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_mitad_mitad.py
+
+# 8. Access Odoo at http://elgordo.local (admin password in config/odoo.conf)
 ```
 
 **After first login:**
@@ -100,6 +103,7 @@ Wait until Odoo is reachable at `http://elgordo.local`, then proceed to import d
 | 1 | `import_initial.py` | Install modules, create UoMs | `csv/unidades.csv` |
 | 2 | `import_products.py` | **Main import** - Categories, products, BoMs, POS setup | `csv/categories.csv`, `csv/products.csv`, `csv/producto_masa.csv`, `csv/receta_del_bollo.csv`, `csv/receta_pizzas_con_masa.csv` |
 | 3 | `setup_floors.py` | **Optional** - Restaurant floor plans with tables | `images/salon.png`, `images/afuera.png` |
+| 4 | `setup_mitad_mitad.py` | Setup half & half pizza (Mitad y Mitad) with attributes and automation | Existing pizza products and BoMs |
 
 **Run in order:**
 ```bash
@@ -107,20 +111,46 @@ Wait until Odoo is reachable at `http://elgordo.local`, then proceed to import d
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_initial.py
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_products.py
 
-# Optional - floor plans
+# Optional - floor plans and mitad y mitad
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_floors.py
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_mitad_mitad.py
 ```
 
 ---
 
 ## 3. What's Imported
 
-### Products (79 total)
+### Products (80 total)
 - **Raw ingredients** (flour, cheese, sauce, toppings)
-- **20+ Pizzas** (Mozzarella, Especial, 4 Quesos, etc.)
+- **20 Pizzas** (Mozzarella, Especial, 4 Quesos, etc.)
+- **🍕 Mitad y Mitad** - Half & half pizza with 289 combinations
 - **Drinks** (Coca-Cola, Sprite, Fanta, Pepsi, water)
 - **6 Empanadas** (Carne, JyQ, Verdura, etc.)
 - **Beer products** (Pintas and 1L refills)
+
+### 🍕 Mitad y Mitad (Half & Half Pizza)
+
+Special product that allows customers to order **half one pizza + half another**:
+
+**How it works:**
+1. Tap "🍕 Mitad y Mitad" in POS
+2. Select **Lado A** (Side A) - choose from 17 available pizzas
+3. Select **Lado B** (Side B) - choose from 17 available pizzas
+4. Price automatically calculates to **MAX(price_A, price_B)**
+   - Example: Mozzarella (12000) + Pepperoni (14000) = **14000**
+   - You pay for the more expensive half
+
+**Stock deduction:**
+- Automatically deducts **50%** of ingredients from Side A's pizza
+- Automatically deducts **50%** of ingredients from Side B's pizza
+- Full dough (Bollo de Masa) always deducted (1 unit)
+
+**Excluded from halves:**
+- PROMO 2 Mozzarellas (promotional item)
+- Super Gordo (stuffed pizza - different base)
+
+**Available for halves:**
+Mozzarella, Especial, 4 Quesos Ahumado, Rúcula y Jamón Crudo, Rúcula Veggie, Napolitana con Ajo, Napolitana Vegana, Pepperoni, Fugazzeta, Grinch, Caprese, Borromeo, Super Pesto, Champignon, Champignon Veggie, Palmitos y Jamón, Ananá, Anchoas
 
 ### POS Setup (Automatic)
 - ✅ Products enabled for POS (`available_in_pos = True`)
@@ -200,7 +230,10 @@ docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addon
 # 5. Setup restaurant floor plans with images
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_floors.py
 
-# 6. Restart to ensure everything is loaded
+# 6. Setup Mitad y Mitad (half & half pizzas)
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_mitad_mitad.py
+
+# 7. Restart to ensure everything is loaded
 docker compose restart web
 
 echo "================================"
@@ -246,6 +279,9 @@ docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addon
 echo "🗺️  Setting up floor plans..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_floors.py
 
+echo "🍕 Setting up Mitad y Mitad (half & half pizzas)..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_mitad_mitad.py
+
 echo "🔄 Restarting..."
 docker compose restart web
 
@@ -269,10 +305,12 @@ Then run: `chmod +x scripts/nuclear-reset.sh && ./scripts/nuclear-reset.sh`
 
 | Component | Count | Details |
 |-----------|-------|---------|
-| **Products** | 79 | 20 pizzas, 6 empanadas, 14 drinks, beer, ingredients |
+| **Products** | 80 | 20 pizzas (including Mitad y Mitad), 6 empanadas, 14 drinks, beer, ingredients |
 | **Categories** | 11 | Full hierarchy (Todos → VENTAS, INSUMOS, etc.) |
 | **POS Categories** | 4 | Pizzas, Cerveza, Bebidas, Empanadas |
 | **BoMs** | 21 | Phantom BoMs for auto-ingredient deduction |
+| **Mitad y Mitad Variants** | 289 | 17 pizzas × 17 pizzas (half & half combinations) |
+| **Automated Actions** | 2 | MAX pricing + 50% stock deduction |
 | **Tables** | 19 | Salón (1-12) + Afuera (13-16 + 3 round) |
 | **Floor Plans** | 2 | With background images from `images/` |
 

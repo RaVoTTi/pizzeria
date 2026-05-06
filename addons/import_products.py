@@ -1,10 +1,23 @@
 import csv
 import os
+import base64
 import logging
 
 logger = logging.getLogger(__name__)
 
 CSV_DIR = '/csv'
+
+IMAGES_DIR = '/images/productos'
+
+
+def encode_image(image_path):
+    if not image_path or image_path == 'PEGAR_LINK_AQUI':
+        return False
+    full_path = image_path if os.path.isabs(image_path) else os.path.join(IMAGES_DIR, image_path)
+    if os.path.isfile(full_path):
+        with open(full_path, 'rb') as f:
+            return base64.b64encode(f.read())
+    return False
 
 
 def csv_rows(filename):
@@ -147,7 +160,12 @@ for row in all_product_rows:
     if existing:
         product_ids[external_id] = existing.id
         product_by_name[name] = existing.id
-        print(f"  Product exists: {name} (id={existing.id})")
+        image_data = encode_image(row.get('image_1920', ''))
+        if image_data:
+            existing.write({'image_1920': image_data})
+            print(f"  Product exists + image updated: {name} (id={existing.id})")
+        else:
+            print(f"  Product exists: {name} (id={existing.id})")
         continue
 
     categ_id = get_categ_id(env, categ_ref, cat_ids)
@@ -172,7 +190,12 @@ for row in all_product_rows:
         'sale_ok': list_price > 0,
         'purchase_ok': True,
         'available_in_pos': list_price > 0 and product_type != 'service',
+        'taxes_id': [(6, 0, [])],  # No sale taxes (pizzeria prices include IVA)
     }
+
+    image_data = encode_image(row.get('image_1920', ''))
+    if image_data:
+        vals['image_1920'] = image_data
 
     rec = env['product.template'].create(vals)
     product_ids[external_id] = rec.id
