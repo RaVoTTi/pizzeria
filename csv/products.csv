@@ -52,6 +52,7 @@ venta_litro_roja,Recarga 1 Litro Roja,cat_birra_venta,product,L,5500,8500,
 venta_pinta_negra,Pinta Negra,cat_birra_venta,product,Pinta,3500,5000,
 venta_litro_negra,Recarga 1 Litro Negra,cat_birra_venta,product,L,6000,9000,
 
+serv_delivery,Retira,cat_delivery,service,Unidades,0,0,
 serv_delivery,Envío Cerca,cat_delivery,service,Unidades,0,2000,
 serv_delivery,Envío Lejos,cat_delivery,service,Unidades,0,3000,
 serv_delivery,Envío Procrear,cat_delivery,service,Unidades,0,4000,

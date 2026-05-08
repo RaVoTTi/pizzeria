@@ -141,8 +141,7 @@ all_tables = [
     (15, 898, 285, 95, 94, 'square', '15'),
     (16, 1046, 290, 92, 92, 'square', '16'),
     # --- SPECIAL BUTTONS (Far Right) ---
-    (777, 1231, 78, 218, 155, 'square', 'RETIRA'),
-    (0, 1235, 359, 214, 169, 'square', 'DELIVERY'),
+
 ]
 
 for table_num, pos_x, pos_y, width, height, shape, identifier in all_tables:
