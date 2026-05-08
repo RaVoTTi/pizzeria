@@ -32,9 +32,14 @@ Cross-referenced against actual files in the repository.
 | Custom UoM "Pinta" (~0.473L) | ✅ Done | `csv/unidades.csv`, created in import script |
 | Phantom/Kit BoMs for pizzas | ✅ Done | `csv/receta_pizzas_con_masa.csv` — 82 lines |
 | Two-level BoM chain (Bollo intermediate) | ✅ Done | `csv/receta_del_bollo.csv` → Bollo de Masa → pizzas |
-| Import script (categories, products, BoMs, POS) | ✅ Done | `addons/import_pizzas.py` — 6-step pipeline |
+| Import script (categories, products, BoMs, POS) | ✅ Done | `addons/import_products.py` — 6-step pipeline via `nuclear-reset.sh` |
 | POS config name updated | ✅ Done | Sets name to "Pizzeria El Gordo" |
-| Modules auto-installed (stock, mrp, point_of_sale) | ✅ Done | `import_pizzas.py` installs them before import |
+| Restaurant floor plans & tables | ✅ Done | `addons/setup_floors.py` — 18 tables across 2 floors |
+| Spanish language | ✅ Done | `addons/set_language_spanish.py` |
+| Taxes removed from products | ✅ Done | `addons/remove_taxes.py` |
+| Initial stock loaded | ✅ Done | `addons/setup_test_inventory.py` |
+| Nuclear reset script (full rebuild) | ✅ Done | `scripts/nuclear-reset.sh` — 7-step automated rebuild from scratch |
+| Modules auto-installed (stock, mrp, point_of_sale, pos_restaurant) | ✅ Done | `nuclear-reset.sh` installs them; `pos_restaurant` added |
 | Cost prices on ingredients | ✅ Done | `products.csv` includes `standard_price` per product |
 | Sale prices on salable products | ✅ Done | `products.csv` includes `list_price`; `sale_ok` auto-set |
 | Products available in POS | ✅ Done | `available_in_pos` set when `list_price > 0` and not service |
@@ -65,7 +70,8 @@ Cross-referenced against actual files in the repository.
 | Local DNS config documented | ✅ Done | Three options: router DNS, tablet hosts file, dnsmasq |
 | Ubuntu Server setup guide | ✅ Done | `docs/network-setup.md` — commands for Docker install |
 | Nginx `server_name` includes `elgordo.local` | ✅ Done | `config/nginx.conf` — `server_name elgordo.local 192.168.1.100` |
-| Thermal printer configuration | ❌ Not done | No ESC/POS or IoT box setup |
+| Thermal printer configuration | ❌ Not done | ESC/POS printer setup needed for tickets/receipts |
+| Kitchen Display System (KDS) | ❌ Not done | `pos_restaurant` module installed; KDS screen configuration needed |
 | Hardware actually procured | ❌ Not done | Physical hardware — outside code scope |
 
 ## Phase 4 — Backup & Reliability
@@ -77,6 +83,7 @@ Cross-referenced against actual files in the repository.
 | Backup script (pg_dump + 7-day retention) | ✅ Done | `scripts/backup.sh` |
 | Restore script (with confirmation prompt) | ✅ Done | `scripts/restore.sh` |
 | Odoo shell helper | ✅ Done | `scripts/odoo-shell.sh` |
+| Nuclear reset script | ✅ Done | `scripts/nuclear-reset.sh` — full rebuild in ~3 min |
 | Cron job for nightly backups | ⚠️ Partial | Documented in `docs/network-setup.md` but no crontab/cron Docker setup |
 | Offsite/cloud backup push | ❌ Not done | Script only saves locally; no S3/B2/rclone integration |
 | Odoo filestore backup | ❌ Not done | Only DB dump; `odoo-web-data` volume not backed up |
@@ -116,9 +123,68 @@ Cross-referenced against actual files in the repository.
 | Item | Status | Notes |
 |------|--------|-------|
 | eCommerce module | ❌ Not done | Future phase; not installed or configured |
-| Kitchen Display System (KDS) | ❌ Not done | Future phase |
 | Multi-location support | ❌ Not done | Future phase |
 | Multiple POS terminals | ❌ Not done | Only one POS config defined |
+
+## Phase 8 — Printer & Kitchen Display
+
+> Hardware output: receipt printers and kitchen screens for order flow.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| ESC/POS thermal printer driver setup | ❌ Not done | Need IoT box or direct USB/Network printer in Docker |
+| Receipt printer mapping in POS config | ❌ Not done | Configure receipt + order printer in Odoo POS settings |
+| Kitchen Display System (KDS) screen | ❌ Not done | POS Kitchen module for real-time order display on kitchen monitor |
+| Printer self-test / connectivity verification | ❌ Not done | Script or procedure to confirm printer is reachable |
+| Kitchen order ticket formatting | ❌ Not done | Customize ticket layout (pizza name, toppings, table number) |
+| Auto-print on order confirmation | ❌ Not done | Kitchen ticket prints automatically when POS order is sent |
+
+## Phase 9 — Emergency & Recovery Scripts
+
+> From: `scripts/scripts-ideas.md` — "restaurant battlefield recovery tooling"
+> Philosophy: **optimize for continuity of service**. Keep the kitchen alive, keep waiters selling, recover later.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `kitchen_panic.sh` — restart web, clear printer queues, reprint last 10 min orders | ❌ Not done | Highest value: kitchen tickets are critical during rush |
+| `ghostbuster.sh` — purge stale draft orders, release stuck tables | ❌ Not done | Targets `pos.order` draft state, older than X hours, no payments |
+| `tablet_resync.sh` — invalidate POS cache, rebuild session for cursed tablet | ❌ Not done | Single-tablet recovery without full reset |
+| `safe_mode.sh` — disable accounting/stock validation during rush hour | ❌ Not done | Turns Odoo into "just a cash register" for emergencies |
+| `time_machine_reset.sh` — export today's sales, nuclear reset, re-import revenue | ❌ Not done | Preserves Friday income while clearing corruption |
+| `service_kick.sh` — restart only web container (5s downtime) | ⚠️ Partial | `docker compose restart web` exists but no dedicated script |
+| `freeze_state.sh` — snapshot DB, logs, active orders before risky operations | ❌ Not done | Creates a "crash snapshot" before emergency surgery |
+| `force_stock.sh` — emergency inventory override for "out of stock" blocks | ❌ Not done | Bulk inventory adjustment, not raw `qty_available` override |
+| `blackout_mode.sh` — disable external integrations, local-only operation | ❌ Not done | For when internet/external services are down |
+
+## Phase 10 — Performance & Maintenance
+
+> From: `scripts/scripts-ideas.md` — operational compression and DB health
+> Stock move explosion from phantom BoMs (6+ moves per pizza × 300 pizzas/night = thousands of rows).
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `compress_stock_moves.sh` — aggregate old ingredient consumptions to daily totals | ❌ Not done | Reduces DB bloat from phantom BoM explosions |
+| `archive_pos_orders.sh` — move old orders to archive/export | ❌ Not done | Export detail to JSON/CSV, keep totals in Odoo |
+| `vacuum_friday.sh` — PostgreSQL VACUUM ANALYZE before rush | ❌ Not done | Run before Friday opening to keep DB fast |
+| `purge_logs.sh` — delete debug/session logs | ❌ Not done | Reduces table bloat |
+| `daily_snapshot.sh` — save inventory totals only | ❌ Not done | Point-in-time inventory snapshot for reconciliation |
+| `ingredient_rollup.py` — merge ingredient consumptions by day via Odoo shell | ❌ Not done | Aggregates phantom BoM explosions into daily summaries |
+| Weekly physical inventory reminder/schedule | ❌ Not done | Documented in `docs/plan.md` but no automation |
+
+## Phase 11 — AI-Suggested Improvements
+
+> Additional ideas for operational excellence, not in original plans.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| POS payment methods (cash + MercadoPago/QR) | ❌ Not done | Critical for real operations; cash default, add digital options |
+| Warehouse & stock location config in import script | ❌ Not done | Default warehouse assignment for proper inventory flow |
+| Paper fallback procedure (documented) | ❌ Not done | Pre-printed order pads for when server is completely down |
+| Multi-tier history retention (7d detail → daily → monthly) | ❌ Not done | Structured data lifecycle to balance traceability vs. performance |
+| UPS monitoring script (check power status, alert on battery) | ❌ Not done | `ups_status.sh` — detect power loss and trigger protective measures |
+| POS session auto-close at end of day | ❌ Not done | Prevents stale sessions accumulating overnight |
+| Sales dashboard (most sold pizza, daily revenue, cost/margin) | ❌ Not done | Builds on existing cost prices in products.csv |
+| Ingredient cost alert (threshold notification when cost changes) | ❌ Not done | Track supplier price changes to maintain margins |
 
 ---
 
@@ -127,18 +193,24 @@ Cross-referenced against actual files in the repository.
 | Phase | Total Items | ✅ Done | ⚠️ Partial | ❌ Not Done |
 |-------|-------------|---------|------------|-------------|
 | 0 — Architecture Foundation | 9 | 9 | 0 | 0 |
-| 1 — Core Operations | 13 | 10 | 0 | 3 |
+| 1 — Core Operations | 17 | 15 | 0 | 2 |
 | 2 — Employees & Roles | 5 | 0 | 0 | 5 |
-| 3 — Hardware & Network | 7 | 4 | 0 | 3 |
-| 4 — Backup & Reliability | 7 | 3 | 1 | 3 |
+| 3 — Hardware & Network | 8 | 4 | 0 | 4 |
+| 4 — Backup & Reliability | 8 | 4 | 1 | 3 |
 | 5 — Security | 8 | 3 | 1 | 4 |
 | 6 — Customization & Reporting | 5 | 0 | 1 | 4 |
-| 7 — E-commerce & Scaling | 4 | 0 | 0 | 4 |
-| **Total** | **58** | **29** | **2** | **26** |
+| 7 — E-commerce & Scaling | 3 | 0 | 0 | 3 |
+| 8 — Printer & Kitchen Display | 6 | 0 | 0 | 6 |
+| 9 — Emergency & Recovery Scripts | 9 | 0 | 1 | 8 |
+| 10 — Performance & Maintenance | 7 | 0 | 0 | 7 |
+| 11 — AI-Suggested Improvements | 8 | 0 | 0 | 8 |
+| **Total** | **93** | **35** | **4** | **54** |
 
 **Next priorities** (recommended order):
 1. POS payment methods & warehouse setup (finish Phase 1)
-2. User roles: Manager, Cashier, Kitchen (Phase 2)
-3. Cron job for automated backups + offsite push (Phase 4)
-4. Thermal printer / IoT box setup (Phase 3)
-5. HTTPS with Let's Encrypt or self-signed certs (Phase 5)
+2. Thermal printer + KDS setup (Phase 8) — kitchen can't work without tickets
+3. `kitchen_panic.sh` + `ghostbuster.sh` (Phase 9) — highest emergency value
+4. User roles: Manager, Cashier, Kitchen (Phase 2)
+5. Cron job for automated backups + offsite push (Phase 4)
+6. `compress_stock_moves.sh` + `vacuum_friday.sh` (Phase 10) — prevents DB bloat from phantom BoMs
+7. HTTPS with Let's Encrypt or self-signed certs (Phase 5)
