@@ -1,0 +1,20 @@
+id,name,categ_id/id,detailed_type,uom_name,standard_price,list_price,image_1920
+mit_muzza_s,[S] ½ Mozzarella,cat_mitades,product,Unidades,0,7500,
+mit_especial_s,[S] ½ Especial,cat_mitades,product,Unidades,0,9500,/images/productos/piz_especial.jpg
+mit_4q_ahum_s,[S] ½ Cuatro quesos ahumado,cat_mitades,product,Unidades,0,10000,/images/productos/piz_4q_ahum.jpg
+mit_cuatro_quesos_s,[S] ½ Cuatro Quesos,cat_mitades,product,Unidades,0,10000,/images/productos/piz_cuatro_quesos.jpg
+mit_rucula_cru_s,[S] ½ Rucula y jamon crudo,cat_mitades,product,Unidades,0,10500,/images/productos/piz_rucula_cru.png
+mit_rucula_veg_s,[S] ½ Rucula veggie,cat_mitades,product,Unidades,0,10000,
+mit_napo_ajo_s,[S] ½ Napolitana con ajo,cat_mitades,product,Unidades,0,9500,
+mit_napo_veg_s,[S] ½ Napolitana vegana,cat_mitades,product,Unidades,0,9000,
+mit_peperoni_s,[S] ½ Pepperoni,cat_mitades,product,Unidades,0,10000,/images/productos/piz_peperoni.jpg
+mit_fugazzeta_s,[S] ½ Fugazzeta,cat_mitades,product,Unidades,0,9500,
+mit_grinch_s,[S] ½ Grinch (fugazzeta con pesto),cat_mitades,product,Unidades,0,9500,/images/productos/piz_grinch.png
+mit_caprese_s,[S] ½ Caprese,cat_mitades,product,Unidades,0,11000,
+mit_borromeo_s,[S] ½ Borromeo (panceta),cat_mitades,product,Unidades,0,11000,/images/productos/piz_borromeo.jpeg
+mit_super_pesto_s,[S] ½ Super Pesto,cat_mitades,product,Unidades,0,10000,
+mit_champi_s,[S] ½ Champignon,cat_mitades,product,Unidades,0,11000,/images/productos/piz_champi.jpg
+mit_champi_veg_s,[S] ½ Champignon veggie,cat_mitades,product,Unidades,0,11000,
+mit_palmitos_s,[S] ½ Palmitos y jamon,cat_mitades,product,Unidades,0,11000,/images/productos/piz_palmitos.jpg
+mit_anana_s,[S] ½ Anana,cat_mitades,product,Unidades,0,12000,/images/productos/piz_anana.jpg
+mit_anchoas_s,[S] ½ Anchoas,cat_mitades,product,Unidades,0,12000,/images/productos/piz_anchoas.jpeg

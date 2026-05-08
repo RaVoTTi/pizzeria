@@ -36,16 +36,18 @@ Cross-referenced against actual files in the repository.
 | POS config name updated | ✅ Done | Sets name to "Pizzeria El Gordo" |
 | Restaurant floor plans & tables | ✅ Done | `addons/setup_floors.py` — 18 tables across 2 floors |
 | Spanish language | ✅ Done | `addons/set_language_spanish.py` |
-| Taxes removed from products | ✅ Done | `addons/remove_taxes.py` |
+| Taxes replaced with Cubierto (10% table fee) | ✅ Done | Removed via `remove_taxes.py`; cubierto is per-product pricelist surcharge |
+| Channel pricing (table/pickup/delivery) | ✅ Done | 3 pricelists (Salon/Mostrador/Delivery) × 3 POS configs, per-product surcharges |
+| Delivery fee product ($1500) | ✅ Done | "Costo de Envío" service product in POS Delivery |
 | Initial stock loaded | ✅ Done | `addons/setup_test_inventory.py` |
-| Nuclear reset script (full rebuild) | ✅ Done | `scripts/nuclear-reset.sh` — 7-step automated rebuild from scratch |
+| Nuclear reset script (full rebuild) | ✅ Done | `scripts/nuclear-reset.sh` — 8-step automated rebuild from scratch |
 | Modules auto-installed (stock, mrp, point_of_sale, pos_restaurant) | ✅ Done | `nuclear-reset.sh` installs them; `pos_restaurant` added |
 | Cost prices on ingredients | ✅ Done | `products.csv` includes `standard_price` per product |
 | Sale prices on salable products | ✅ Done | `products.csv` includes `list_price`; `sale_ok` auto-set |
 | Products available in POS | ✅ Done | `available_in_pos` set when `list_price > 0` and not service |
 | Warehouse/location setup | ❌ Not done | No default warehouse or stock location config in import |
 | POS payment methods | ❌ Not done | No payment method configuration in import script |
-| POS fiscal position/taxes | ❌ Not done | No tax or fiscal position setup |
+| POS fiscal position/taxes | ✅ Done | Cubierto tax (10%) + fiscal positions for Mostrador/Delivery |
 
 ## Phase 2 — Employees & Roles
 
@@ -193,7 +195,7 @@ Cross-referenced against actual files in the repository.
 | Phase | Total Items | ✅ Done | ⚠️ Partial | ❌ Not Done |
 |-------|-------------|---------|------------|-------------|
 | 0 — Architecture Foundation | 9 | 9 | 0 | 0 |
-| 1 — Core Operations | 17 | 15 | 0 | 2 |
+| 1 — Core Operations | 20 | 18 | 0 | 2 |
 | 2 — Employees & Roles | 5 | 0 | 0 | 5 |
 | 3 — Hardware & Network | 8 | 4 | 0 | 4 |
 | 4 — Backup & Reliability | 8 | 4 | 1 | 3 |
@@ -204,7 +206,7 @@ Cross-referenced against actual files in the repository.
 | 9 — Emergency & Recovery Scripts | 9 | 0 | 1 | 8 |
 | 10 — Performance & Maintenance | 7 | 0 | 0 | 7 |
 | 11 — AI-Suggested Improvements | 8 | 0 | 0 | 8 |
-| **Total** | **93** | **35** | **4** | **54** |
+| **Total** | **96** | **38** | **4** | **54** |
 
 **Next priorities** (recommended order):
 1. POS payment methods & warehouse setup (finish Phase 1)

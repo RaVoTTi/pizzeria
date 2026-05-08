@@ -1,0 +1,581 @@
+import csv
+import os
+import base64
+import logging
+
+logger = logging.getLogger(__name__)
+
+CSV_DIR = '/csv'
+IMAGES_DIR = '/images/productos'
+
+
+def encode_image(image_path):
+    if not image_path or image_path == 'PEGAR_LINK_AQUI' or image_path.strip() == '':
+        return False
+    full_path = image_path if os.path.isabs(image_path) else os.path.join(IMAGES_DIR, image_path)
+    if os.path.isfile(full_path):
+        with open(full_path, 'rb') as f:
+            return base64.b64encode(f.read())
+    return False
+
+
+def csv_rows(filename):
+    path = os.path.join(CSV_DIR, filename)
+    with open(path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        return list(reader)
+
+
+UOM_SEARCH = {
+    'kg': 'kg',
+    'L': 'Liter',
+    'Unidades': 'Unit',
+    'Units': 'Unit',
+    'Pinta': 'Pinta',
+}
+
+
+def get_uom_id(env, name):
+    search_name = UOM_SEARCH.get(name, name)
+    rec = env['uom.uom'].search([('name', 'ilike', search_name)], limit=1)
+    if rec:
+        return rec.id
+    rec = env['uom.uom'].search([('name', 'ilike', '%' + name + '%')], limit=1)
+    if rec:
+        return rec.id
+    all_uoms = env['uom.uom'].search([])
+    print(f"  WARNING: UoM not found for '{name}', using first available")
+    return all_uoms[0].id if all_uoms else False
+
+
+def get_categ_id(env, categ_ref, cat_ids):
+    if categ_ref in cat_ids:
+        return cat_ids[categ_ref]
+    by_name = {
+        'cat_gastos': 'GASTOS OPERATIVOS',
+        'cat_servicios': 'Servicios (Luz/Gas)',
+        'cat_insumos': 'INSUMOS',
+        'cat_barriles': 'Barriles y Gas',
+        'cat_mp': 'Materia Prima Cocina',
+        'cat_venta': 'VENTAS',
+        'cat_bebidas': 'Bebidas sin Alcohol',
+        'cat_birra_venta': 'Cerveza Barra',
+        'cat_pizzas': 'Pizzas',
+        'cat_mitades': 'Mitades',
+        'cat_delivery': 'Deliveries',
+        'cat_emp': 'Empanadas',
+        'cat_all': 'Todos',
+    }
+    name = by_name.get(categ_ref)
+    if name:
+        rec = env['product.category'].search([('name', '=', name)], limit=1)
+        if rec:
+            return rec.id
+    return env.ref('product.product_category_all').id
+
+
+def find_product_by_name(env, product_name):
+    rec = env['product.template'].search([('name', '=', product_name)], limit=1)
+    if rec:
+        return rec.id
+    return None
+
+
+def create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=False):
+    external_id = row['id']
+    name = row['name']
+    categ_ref = row.get('categ_id/id', '')
+    detailed_type = row.get('detailed_type', 'product')
+    uom_name = row.get('uom_name', 'Unidades')
+    standard_price = float(row.get('standard_price', '0') or '0')
+    list_price = float(row.get('list_price', '0') or '0')
+
+    display_name = name
+    display_code = external_id.upper()
+
+    existing = env['product.template'].search([('name', '=', display_name)], limit=1)
+    if existing:
+        existing.write({'list_price': list_price})
+        product_ids[external_id] = existing.id
+        product_by_name[display_name] = existing.id
+        image_data = encode_image(row.get('image_1920', ''))
+        if image_data:
+            existing.write({'image_1920': image_data})
+        label = "Salon" if is_salon else "Mostrador"
+        print(f"  {label} exists: {display_name} ${list_price:.0f} (id={existing.id})")
+        return existing.id
+
+    categ_id = get_categ_id(env, categ_ref, cat_ids)
+    uom_id = get_uom_id_wrapped(env, uom_name)
+
+    type_mapping = {'product': 'consu', 'consu': 'consu', 'service': 'service'}
+    product_type = type_mapping.get(detailed_type, 'consu')
+
+    vals = {
+        'name': display_name,
+        'default_code': display_code,
+        'categ_id': categ_id,
+        'type': product_type,
+        'is_storable': detailed_type == 'product',
+        'uom_id': uom_id,
+        'standard_price': standard_price,
+        'list_price': list_price,
+        'sale_ok': True,
+        'purchase_ok': detailed_type == 'product' and not is_salon,
+        'available_in_pos': True,
+        'taxes_id': [(6, 0, [])],
+    }
+
+    image_data = encode_image(row.get('image_1920', ''))
+    if image_data:
+        vals['image_1920'] = image_data
+
+    rec = env['product.template'].create(vals)
+    product_ids[external_id] = rec.id
+    product_by_name[display_name] = rec.id
+    label = "Salon" if is_salon else "Mostrador"
+    print(f"  Created {label}: {display_name} ${list_price:.0f} (id={rec.id})")
+    return rec.id
+
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+print("=" * 60)
+print("  Pizzeria El Gordo - Dual-Product Import (v2)")
+print("  Mostrador (base) + [S] Salon variants")
+print("  Fixed: storable products, Bollo import, phantom BoMs")
+print("=" * 60)
+
+PINTA_UOM_ID = False
+existing_pinta = env['uom.uom'].search([('name', '=', 'Pinta')], limit=1)
+if existing_pinta:
+    PINTA_UOM_ID = existing_pinta.id
+    print(f"\n  Found Pinta UoM (id={PINTA_UOM_ID})")
+
+
+def get_uom_id_wrapped(env, name):
+    if name == 'Pinta' and PINTA_UOM_ID:
+        return PINTA_UOM_ID
+    return get_uom_id(env, name)
+
+
+# ---------------------------------------------------------------------------
+# 1. Categories
+# ---------------------------------------------------------------------------
+print("\n[1/10] Creating product categories...")
+cat_rows = csv_rows('categories.csv')
+cat_ids = {}
+
+for row in cat_rows:
+    existing = env['product.category'].search([('name', '=', row['name'])], limit=1)
+    if existing:
+        cat_ids[row['id']] = existing.id
+        print(f"  Category exists: {row['name']} (id={existing.id})")
+        continue
+
+    parent_id = False
+    if row.get('parent_id/id'):
+        parent_xml = row['parent_id/id']
+        if parent_xml in cat_ids:
+            parent_id = cat_ids[parent_xml]
+        else:
+            parent_rec = env['product.category'].search([('name', '=', parent_xml)], limit=1)
+            if parent_rec:
+                parent_id = parent_rec.id
+
+    vals = {'name': row['name']}
+    if parent_id:
+        vals['parent_id'] = parent_id
+
+    rec = env['product.category'].create(vals)
+    cat_ids[row['id']] = rec.id
+    print(f"  Created category: {row['name']} (id={rec.id})")
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 2. Ingredients, drinks, delivery (products.csv — no salable empanadas/pizzas)
+# ---------------------------------------------------------------------------
+print("\n[2/10] Creating ingredients, drinks, delivery...")
+prod_rows = csv_rows('products.csv')
+product_ids = {}
+product_by_name = {}
+
+for row in prod_rows:
+    external_id = row['id']
+    name = row['name']
+    detailed_type = row.get('detailed_type', 'product')
+    list_price = float(row.get('list_price', '0') or '0')
+
+    existing = env['product.template'].search([('name', '=', name)], limit=1)
+    if existing:
+        product_ids[external_id] = existing.id
+        product_by_name[name] = existing.id
+        image_data = encode_image(row.get('image_1920', ''))
+        if image_data:
+            existing.write({'image_1920': image_data})
+            print(f"  Product exists + image: {name} (id={existing.id})")
+        else:
+            print(f"  Product exists: {name} (id={existing.id})")
+        continue
+
+    categ_id = get_categ_id(env, row.get('categ_id/id', ''), cat_ids)
+    uom_id = get_uom_id_wrapped(env, row.get('uom_name', 'Unidades'))
+
+    type_mapping = {'product': 'consu', 'consu': 'consu', 'service': 'service'}
+    product_type = type_mapping.get(detailed_type, 'consu')
+
+    vals = {
+        'name': name,
+        'categ_id': categ_id,
+        'type': product_type,
+        'is_storable': detailed_type == 'product',
+        'uom_id': uom_id,
+        'standard_price': float(row.get('standard_price', '0') or '0'),
+        'list_price': list_price,
+        'sale_ok': list_price > 0,
+        'purchase_ok': True,
+        'available_in_pos': list_price > 0 and product_type != 'service' and name != 'Costo de Envío',
+        'taxes_id': [(6, 0, [])],
+    }
+
+    image_data = encode_image(row.get('image_1920', ''))
+    if image_data:
+        vals['image_1920'] = image_data
+
+    rec = env['product.template'].create(vals)
+    product_ids[external_id] = rec.id
+    product_by_name[name] = rec.id
+    print(f"  Created product: {name} (id={rec.id})")
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 3. Bollo de Masa (intermediate product from producto_masa.csv)
+# ---------------------------------------------------------------------------
+print("\n[3/10] Creating Bollo de Masa (intermediate product)...")
+bollo_product_rows = csv_rows('producto_masa.csv')
+
+for row in bollo_product_rows:
+    external_id = row['id']
+    name = row['name']
+    detailed_type = row.get('detailed_type', 'product')
+    list_price = float(row.get('list_price', '0') or '0')
+
+    existing = env['product.template'].search([('name', '=', name)], limit=1)
+    if existing:
+        product_ids[external_id] = existing.id
+        product_by_name[name] = existing.id
+        print(f"  Product exists: {name} (id={existing.id})")
+        continue
+
+    categ_id = get_categ_id(env, row.get('categ_id/id', ''), cat_ids)
+    uom_id = get_uom_id_wrapped(env, row.get('uom_name', 'Unidades'))
+
+    type_mapping = {'product': 'consu', 'consu': 'consu', 'service': 'service'}
+    product_type = type_mapping.get(detailed_type, 'consu')
+
+    vals = {
+        'name': name,
+        'categ_id': categ_id,
+        'type': product_type,
+        'is_storable': detailed_type == 'product',
+        'uom_id': uom_id,
+        'standard_price': float(row.get('standard_price', '0') or '0'),
+        'list_price': list_price,
+        'sale_ok': False,
+        'purchase_ok': False,
+        'available_in_pos': False,
+        'taxes_id': [(6, 0, [])],
+    }
+
+    rec = env['product.template'].create(vals)
+    product_ids[external_id] = rec.id
+    product_by_name[name] = rec.id
+    print(f"  Created product: {name} (id={rec.id})")
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 3. Pizzas — Mostrador (pizzas.csv)
+# ---------------------------------------------------------------------------
+print("\n[4/10] Creating pizza products — Mostrador (pizzas.csv)...")
+pizza_rows = csv_rows('pizzas.csv')
+
+for row in pizza_rows:
+    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=False)
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 4. Pizzas — Salon (pizzas_salon.csv)
+# ---------------------------------------------------------------------------
+print("\n[5/10] Creating pizza products — Salon (pizzas_salon.csv)...")
+salon_pizza_rows = csv_rows('pizzas_salon.csv')
+salon_pizza_names = {}
+
+for row in salon_pizza_rows:
+    tmpl_id = create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=True)
+    salon_pizza_names[row['id']] = row['name']
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 5. Mitades — Mostrador (mitades.csv) + Salon (mitades_salon.csv)
+# ---------------------------------------------------------------------------
+print("\n[6/10] Creating mitad products — Mostrador (mitades.csv)...")
+mitad_rows = csv_rows('mitades.csv')
+
+for row in mitad_rows:
+    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=False)
+
+env.cr.commit()
+
+print("  Creating mitad products — Salon (mitades_salon.csv)...")
+salon_mitad_rows = csv_rows('mitades_salon.csv')
+
+for row in salon_mitad_rows:
+    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=True)
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 5b. Empanadas — Mostrador (empanadas.csv) + Salon (empanadas_salon.csv)
+# ---------------------------------------------------------------------------
+print("\n[7/10] Creating empanada products — Mostrador (empanadas.csv)...")
+emp_rows = csv_rows('empanadas.csv')
+
+for row in emp_rows:
+    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=False)
+
+env.cr.commit()
+
+print("  Creating empanada products — Salon (empanadas_salon.csv)...")
+salon_emp_rows = csv_rows('empanadas_salon.csv')
+
+for row in salon_emp_rows:
+    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=True)
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 7. BoMs (ingredient recipes + Salon phantom links)
+# ---------------------------------------------------------------------------
+print("\n[8/10] Creating Bill of Materials...")
+
+# Ingredient BoMs for Mostrador pizzas/imports from receta CSVs
+bollo_rows = csv_rows('receta_del_bollo.csv')
+pizza_bom_rows = csv_rows('receta_pizzas_con_masa.csv')
+all_bom_rows = bollo_rows + pizza_bom_rows
+
+bom_groups = {}
+for row in all_bom_rows:
+    key = row['product_tmpl_id/id']
+    if key not in bom_groups:
+        bom_groups[key] = {
+            'code': row.get('code', ''),
+            'type': row.get('type', 'phantom'),
+            'lines': [],
+        }
+    bom_groups[key]['lines'].append({
+        'product_name': row['bom_line_ids/product_id'],
+        'product_qty': float(row['bom_line_ids/product_qty']),
+    })
+
+bom_count = 0
+for external_id, bom_data in bom_groups.items():
+    tmpl_id = product_ids.get(external_id)
+    if not tmpl_id:
+        print(f"  WARNING: Product not found for BoM: {external_id}")
+        continue
+
+    existing_bom = env['mrp.bom'].search([
+        ('product_tmpl_id', '=', tmpl_id),
+        ('type', '=', bom_data['type']),
+    ], limit=1)
+    if existing_bom:
+        print(f"  BoM already exists for: {external_id}")
+        continue
+
+    line_vals = []
+    for line in bom_data['lines']:
+        line_product_id = find_product_by_name(env, line['product_name'])
+        if not line_product_id:
+            print(f"    WARNING: Ingredient not found: {line['product_name']}")
+            continue
+        product_product = env['product.product'].search([
+            ('product_tmpl_id', '=', line_product_id)
+        ], limit=1)
+        if not product_product:
+            print(f"    WARNING: No product.product for: {line['product_name']}")
+            continue
+        line_vals.append((0, 0, {
+            'product_id': product_product.id,
+            'product_qty': line['product_qty'],
+            'product_uom_id': product_product.uom_id.id,
+        }))
+
+    if not line_vals:
+        print(f"  WARNING: No valid lines for BoM: {external_id}, skipping")
+        continue
+
+    bom_vals = {
+        'product_tmpl_id': tmpl_id,
+        'type': bom_data['type'],
+        'code': bom_data.get('code', ''),
+        'bom_line_ids': line_vals,
+    }
+    bom = env['mrp.bom'].create(bom_vals)
+    bom_count += 1
+    print(f"  Created ingredient BoM for: {external_id} ({len(line_vals)} lines)")
+
+# Phantom BoM links: [S] Salon variant -> 1x Mostrador product
+salon_link_count = 0
+
+def create_salon_link(env, salon_name, mostrador_name, product_by_name):
+    global salon_link_count
+    salon_tmpl_id = product_by_name.get(salon_name)
+    if not salon_tmpl_id:
+        print(f"  WARNING: Salon variant not found: {salon_name}")
+        return
+    mostrador_pp = env['product.product'].search([
+        ('product_tmpl_id', '=', product_by_name[mostrador_name])
+    ], limit=1)
+    if not mostrador_pp:
+        print(f"  WARNING: Mostrador product.product not found: {mostrador_name}")
+        return
+
+    existing_bom = env['mrp.bom'].search([
+        ('product_tmpl_id', '=', salon_tmpl_id),
+        ('type', '=', 'phantom'),
+    ], limit=1)
+    if existing_bom:
+        print(f"  Salon BoM already exists: {salon_name}")
+        return
+
+    env['mrp.bom'].create({
+        'product_tmpl_id': salon_tmpl_id,
+        'type': 'phantom',
+        'code': f'Kit Salon {mostrador_name}',
+        'bom_line_ids': [(0, 0, {
+            'product_id': mostrador_pp.id,
+            'product_qty': 1,
+            'product_uom_id': mostrador_pp.uom_id.id,
+        })],
+    })
+    salon_link_count += 1
+    print(f"  Salon BoM: {salon_name} -> 1x {mostrador_name}")
+
+# Pizza salon links
+for row in salon_pizza_rows:
+    orig_id = row['id'].replace('_s', '')
+    mostrador_name = row['name'].replace('[S] ', '')
+    salon_name = row['name']
+    create_salon_link(env, salon_name, mostrador_name, product_by_name)
+
+# Mitad salon links
+for row in salon_mitad_rows:
+    mostrador_name = row['name'].replace('[S] ', '')
+    salon_name = row['name']
+    create_salon_link(env, salon_name, mostrador_name, product_by_name)
+
+# Empanada salon links
+for row in salon_emp_rows:
+    mostrador_name = row['name'].replace('[S] ', '')
+    salon_name = row['name']
+    create_salon_link(env, salon_name, mostrador_name, product_by_name)
+
+env.cr.commit()
+
+# ---------------------------------------------------------------------------
+# 8. POS categories and config
+# ---------------------------------------------------------------------------
+print("\n[9/10] Setting up POS categories...")
+
+# POS categories ordered: [S] first, then drinks, then normal food
+# The ORDER of this list determines button order in POS.
+pos_categ_mapping = [
+    # (product_categ_name, pos_categ_name, is_salon)
+    ('Empanadas', '[S] Empanadas', True),
+    ('Pizzas', '[S] Pizzas', True),
+    ('Mitades', '[S] Mitades', True),
+    ('Cerveza Barra', 'Cerveza', False),
+    ('Bebidas sin Alcohol', 'Bebidas', False),
+    ('Empanadas', 'Empanadas', False),
+    ('Pizzas', 'Pizzas', False),
+    ('Mitades', 'Mitades', False),
+]
+
+all_categ_ids = []
+for product_categ_name, pos_categ_name, is_salon in pos_categ_mapping:
+    pos_categ = env['pos.category'].search([('name', '=', pos_categ_name)], limit=1)
+    if not pos_categ:
+        pos_categ = env['pos.category'].create({'name': pos_categ_name})
+        print(f"  Created POS category: {pos_categ_name}")
+    else:
+        print(f"  POS category exists: {pos_categ_name}")
+    all_categ_ids.append(pos_categ.id)
+
+    name_filter = ('name', 'like', '[S]%') if is_salon else ('name', 'not like', '[S]%')
+    products = env['product.template'].search([
+        ('categ_id.name', '=', product_categ_name),
+        ('available_in_pos', '=', True),
+        name_filter,
+    ])
+    if products:
+        products.write({'pos_categ_ids': [(6, 0, [pos_categ.id])]})
+        print(f"    - {len(products)} products")
+
+delivery_prod = env['product.template'].search([('name', 'in', ['Costo de Envío', 'Delivery'])], limit=1)
+delivery_categ = env['pos.category'].search([('name', '=', 'Delivery')], limit=1)
+if not delivery_categ:
+    delivery_categ = env['pos.category'].create({'name': 'Delivery'})
+    print(f"  Created POS category: Delivery")
+all_categ_ids.append(delivery_categ.id)
+if delivery_prod:
+    delivery_prod.write({'pos_categ_ids': [(6, 0, [delivery_categ.id])], 'available_in_pos': True})
+    print(f"  Assigned Delivery product")
+
+pos_products = env['product.template'].search([
+    ('list_price', '>', 0), ('type', '!=', 'service'), ('available_in_pos', '=', False),
+])
+if pos_products:
+    pos_products.write({'available_in_pos': True})
+    print(f"\n  Enabled {len(pos_products)} additional products for POS")
+
+env.cr.commit()
+
+mostrador_pizza_count = len(pizza_rows)
+mostrador_mitad_count = len(mitad_rows)
+mostrador_emp_count = len(emp_rows)
+salon_pizza_count = len(salon_pizza_rows)
+salon_mitad_count = len(salon_mitad_rows)
+salon_emp_count = len(salon_emp_rows)
+
+print("\n" + "=" * 60)
+print("  Dual-product import complete!")
+print(f"  Bollo (intermediate): {len(bollo_product_rows)}")
+print(f"  Mostrador pizzas: {mostrador_pizza_count}")
+print(f"  Mostrador mitades: {mostrador_mitad_count}")
+print(f"  Mostrador empanadas: {mostrador_emp_count}")
+print(f"  Salon pizzas [S]: {salon_pizza_count}")
+print(f"  Salon mitades [S]: {salon_mitad_count}")
+print(f"  Salon empanadas [S]: {salon_emp_count}")
+print(f"  Ingredient BoMs: {bom_count}")
+print(f"  Salon phantom BoM links: {salon_link_count}")
+print("")
+print("  ARCHITECTURE:")
+print("    Mozzarella      -> BoM -> Bollo + Muzzarella + Sauce")
+print("    [S] Mozzarella  -> BoM -> 1x Mozzarella")
+print("    (same stock deducted regardless of variant)")
+print("")
+print("  CSV FILES:")
+print("    pizzas.csv          -> Mostrador prices")
+print("    pizzas_salon.csv    -> Salon prices [S]")
+print("    mitades.csv         -> Mostrador mitad prices")
+print("    mitades_salon.csv   -> Salon mitad prices [S]")
+print("    empanadas.csv       -> Mostrador empanada prices")
+print("    empanadas_salon.csv -> Salon empanada prices [S]")
+print("=" * 60)

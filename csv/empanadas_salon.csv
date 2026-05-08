@@ -1,0 +1,6 @@
+id,name,categ_id/id,detailed_type,uom_name,standard_price,list_price,image_1920
+emp_carne_s,[S] Empanada Carne,cat_emp,product,Unidades,1200,2500,/images/productos/emp_carne.jpeg
+emp_jyq_s,[S] Empanada Jamón y Queso,cat_emp,product,Unidades,1200,3000,/images/productos/emp_jyq.png
+emp_matambre_s,[S] Empanada Matambrito,cat_emp,product,Unidades,1400,3500,/images/productos/emp_matambre.jpg
+emp_cheesa_s,[S] Empanada Cheeseburger,cat_emp,product,Unidades,1400,3500,/images/productos/emp_cheesa.jpg
+emp_pollo_s,[S] Empanada Pollo,cat_emp,product,Unidades,1300,2500,/images/productos/emp_pollo.jpg

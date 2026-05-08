@@ -1,56 +1,89 @@
 #!/bin/bash
 set -e
 
-echo "🧨 NUCLEAR RESET - Deleting everything and rebuilding from scratch..."
+echo "=========================================="
+echo "  NUCLEAR RESET - Pizzeria El Gordo"
+echo "=========================================="
 cd ~/Documents/odoo-pizzeria
 
-echo "🛑 Stopping containers and removing all data volumes..."
+echo ""
+echo "[0/11] Stopping containers and removing all data volumes..."
 docker compose down -v --remove-orphans
 docker system prune -f
 
-echo "🚀 Starting fresh..."
+echo ""
+echo "[0/11] Starting fresh..."
 docker compose up -d
 
-echo "⏳ Waiting for database to be ready (20s)..."
+echo ""
+echo "[0/11] Waiting for database to be ready (20s)..."
 sleep 20
 
-echo "🔧 Installing Odoo modules..."
+echo ""
+echo "[1/11] Installing Odoo modules..."
 docker compose run --rm web odoo server -c /etc/odoo/odoo.conf -d elgordo \
   -i base,stock,mrp,point_of_sale,pos_restaurant --stop-after-init
 
-echo "📥 Step 1/7: Importing units of measure..."
+echo ""
+echo "[2/11] Importing units of measure..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_initial.py
 
-echo "📥 Step 2/7: Importing products, categories, and BoMs..."
-docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_products.py
+echo ""
+echo "[3/11] Creating product categories..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_01_categories.py
 
-echo "🗺️  Step 3/7: Setting up restaurant floor plans..."
+echo ""
+echo "[4/11] Creating ingredients, drinks, delivery, and Bollo..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_02_ingredients.py
+
+echo ""
+echo "[5/11] Creating saleable products (pizzas, mitades, empanadas)..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_03_products.py
+
+echo ""
+echo "[6/11] Creating Bill of Materials (ingredient recipes + Salon links)..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_04_boms.py
+
+echo ""
+echo "[7/11] Setting up POS categories..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_05_pos.py
+
+echo ""
+echo "[8/11] Setting up restaurant floor plans..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_floors.py
 
-echo "🌐 Step 4/7: Setting language to Spanish..."
+echo ""
+echo "[9/11] Setting language to Spanish..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/set_language_spanish.py
 
-echo "💰 Step 5/7: Removing taxes from products..."
+echo ""
+echo "[10/11] Removing taxes from products..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/remove_taxes.py
 
-echo "📦 Step 6/7: Loading initial stock quantities..."
+echo ""
+echo "[11/11] Loading initial stock quantities..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_test_inventory.py
 
-echo "🔄 Step 7/7: Restarting containers..."
+echo ""
+echo "  Running BoM validation diagnostic..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/validate_boms.py
+
+echo ""
+echo "  Restarting containers..."
 docker compose restart web
 
 echo ""
-echo "================================"
-echo "✅ SETUP COMPLETE!"
-echo "================================"
+echo "=========================================="
+echo "  SETUP COMPLETE!"
+echo "=========================================="
 echo ""
-echo "Your pizzeria is ready with:"
-echo "  • 99 Products (81 full + 18 halves)"
-echo "  • 40 Phantom BoMs (21 whole pizzas + 18 halves + Bollo)"
-echo "  • 18 Tables with floor plan"
-echo "  • Spanish language"
-echo "  • Taxes removed"
-echo "  • Initial stock loaded"
+echo "  Products: Mostrador + [S] Salon variants"
+echo "  Phantom BoMs: [S] -> Mostrador -> ingredients"
+echo "  Categories: [S] Empanadas, [S] Pizzas, [S] Mitades,"
+echo "              Cerveza, Bebidas, Empanadas, Pizzas, Mitades, Delivery"
+echo "  18 Tables with floor plan"
+echo "  Spanish language, no taxes"
+echo "  Initial stock loaded"
 echo ""
-echo "Access: http://elgordo.local"
-echo "================================"
+echo "  Access: http://elgordo.local"
+echo "=========================================="

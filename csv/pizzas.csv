@@ -1,0 +1,22 @@
+id,name,categ_id/id,detailed_type,uom_name,standard_price,list_price,image_1920
+piz_muzza,Mozzarella,cat_pizzas,product,Unidades,0,12000,
+piz_especial,Especial,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_especial.jpg
+piz_4q_ahum,Cuatro quesos ahumado,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_4q_ahum.jpg
+piz_cuatro_quesos,Cuatro Quesos,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_cuatro_quesos.jpg
+piz_rucula_cru,Rucula y jamon crudo,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_rucula_cru.png
+piz_rucula_veg,Rucula veggie,cat_pizzas,product,Unidades,0,14000,
+piz_napo_ajo,Napolitana con ajo,cat_pizzas,product,Unidades,0,14000,
+piz_napo_veg,Napolitana vegana,cat_pizzas,product,Unidades,0,13000,
+piz_peperoni,Pepperoni,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_peperoni.jpg
+piz_fugazzeta,Fugazzeta,cat_pizzas,product,Unidades,0,14000,
+piz_grinch,Grinch (fugazzeta con pesto),cat_pizzas,product,Unidades,0,14000,/images/productos/piz_grinch.png
+piz_caprese,Caprese,cat_pizzas,product,Unidades,0,17000,
+piz_borromeo,Borromeo (panceta),cat_pizzas,product,Unidades,0,17000,/images/productos/piz_borromeo.jpeg
+piz_super_pesto,Super Pesto,cat_pizzas,product,Unidades,0,17000,
+piz_champi,Champignon,cat_pizzas,product,Unidades,0,17000,/images/productos/piz_champi.jpg
+piz_champi_veg,Champignon veggie,cat_pizzas,product,Unidades,0,17000,
+piz_palmitos,Palmitos y jamon,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_palmitos.jpg
+piz_anana,Anana,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anana.jpg
+piz_anchoas,Anchoas,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anchoas.jpeg
+piz_super_gordo,Super gordo (fugazzeta rellena),cat_pizzas,product,Unidades,0,27000,
+promo_2_muzza,PROMO 2 Mozzarellas,cat_pizzas,product,Unidades,0,22000,

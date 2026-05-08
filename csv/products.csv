@@ -3,97 +3,55 @@ ins_harina,Harina 0000,cat_mp,product,kg,800,0,
 ins_levadura,Levadura Fresca,cat_mp,product,kg,1500,0,
 ins_agua,Agua Filtrada,cat_mp,product,L,50,0,
 ins_aceite,Aceite de Oliva,cat_mp,product,L,8000,0,
-ins_sal,Sal Fina,cat_mp,product,kg,400,0,
-ins_muzza,Muzzarella Cilindro,cat_mp,product,kg,6500,0,
-ins_salsa,Salsa de Tomate Base,cat_mp,product,L,2000,0,
-ins_provolone,Queso Provolone,cat_mp,product,kg,9000,0,
-ins_roquefort,Queso Roquefort,cat_mp,product,kg,11000,0,
-ins_parmesano,Queso Parmesano Rallado,cat_mp,product,kg,15000,0,
-ins_jamon,Jamón Cocido Natural,cat_mp,product,kg,7000,0,
-ins_morron,Morrones en Conserva,cat_mp,product,kg,5000,0,
-ins_aceituna,Aceitunas Verdes,cat_mp,product,kg,4500,0,
-ins_panceta,Panceta Ahumada (Bacon),cat_mp,product,kg,12000,0,
-ins_champi,Champiñones Frescos,cat_mp,product,kg,8000,0,
-ins_anana,Ananá en Rodajas,cat_mp,product,kg,6000,0,
-ins_peperoni,Pepperoni Rodajas,cat_mp,product,kg,18000,0,
-ins_rucula,Rúcula Fresca,cat_mp,product,kg,3000,0,
-ins_tomate_c,Tomates Cherry,cat_mp,product,kg,4000,0,
-ins_albahaca,Albahaca Fresca,cat_mp,product,kg,5000,0,
-ins_huevo,Huevos Maple,cat_mp,product,Unidades,150,0,
-ins_ajo,Ajo Triturado,cat_mp,product,kg,3000,0,
-ins_co2,Tubo CO2 (Carga),cat_barriles,product,kg,15000,0,
-ins_golden_bulk,Cerveza Golden (A granel),cat_barriles,product,L,2500,0,
-ins_roja_bulk,Cerveza Roja (A granel),cat_barriles,product,L,2600,0,
-ins_negra_bulk,Cerveza Negra (A granel),cat_barriles,product,L,2700,0,
-gas_coca_15,Coca-Cola 1.5L,cat_bebidas,product,Unidades,1800,3500,PEGAR_LINK_AQUI
-gas_coca_225,Coca-Cola 2.25L,cat_bebidas,product,Unidades,2500,4500,PEGAR_LINK_AQUI
-gas_coca_z_15,Coca-Cola Zero 1.5L,cat_bebidas,product,Unidades,1800,3500,PEGAR_LINK_AQUI
-gas_coca_z_225,Coca-Cola Zero 2.25L,cat_bebidas,product,Unidades,2500,4500,PEGAR_LINK_AQUI
-gas_sprite_15,Sprite 1.5L,cat_bebidas,product,Unidades,1800,3500,PEGAR_LINK_AQUI
-gas_sprite_225,Sprite 2.25L,cat_bebidas,product,Unidades,2500,4500,PEGAR_LINK_AQUI
-gas_fanta_15,Fanta 1.5L,cat_bebidas,product,Unidades,1800,3500,PEGAR_LINK_AQUI
-gas_fanta_225,Fanta 2.25L,cat_bebidas,product,Unidades,2500,4500,PEGAR_LINK_AQUI
-gas_pepsi_15,Pepsi 1.5L,cat_bebidas,product,Unidades,1700,3400,PEGAR_LINK_AQUI
-gas_pepsi_225,Pepsi 2.25L,cat_bebidas,product,Unidades,2400,4400,PEGAR_LINK_AQUI
-gas_7up_15,7up 1.5L,cat_bebidas,product,Unidades,1700,3400,PEGAR_LINK_AQUI
-gas_7up_225,7up 2.25L,cat_bebidas,product,Unidades,2400,4400,PEGAR_LINK_AQUI
-gas_agua_cg_15,Agua con Gas 1.5L,cat_bebidas,product,Unidades,1000,2000,PEGAR_LINK_AQUI
-gas_agua_sg_15,Agua sin Gas 1.5L,cat_bebidas,product,Unidades,1000,2000,PEGAR_LINK_AQUI
-emp_carne,Empanada Carne,cat_venta,product,Unidades,500,1200,/images/productos/emp_carne.jpeg
-emp_jyq,Empanada Jamón y Queso,cat_venta,product,Unidades,500,1200,/images/productos/emp_jyq.png
-emp_verdura,Empanada Verdura,cat_venta,product,Unidades,500,1200,PEGAR_LINK_AQUI
-emp_matambre,Empanada Matambrito,cat_venta,product,Unidades,600,1400,/images/productos/emp_matambre.jpg
-emp_cheesa,Empanada Cheeseburger,cat_venta,product,Unidades,600,1400,/images/productos/emp_cheesa.jpg
-emp_pollo,Empanada Pollo,cat_venta,product,Unidades,550,1300,/images/productos/emp_pollo.jpg
-piz_muzza,Mozzarella,cat_pizzas,product,Unidades,0,12000,PEGAR_LINK_AQUI
-piz_especial,Especial,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_especial.jpg
-piz_4q_ahum,Cuatro quesos ahumado,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_4q_ahum.jpg
-piz_cuatro_quesos,Cuatro Quesos,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_cuatro_quesos.jpg
-piz_rucula_cru,Rucula y jamon crudo,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_rucula_cru.png
-piz_rucula_veg,Rucula veggie,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_napo_ajo,Napolitana con ajo,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_napo_veg,Napolitana vegana,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_peperoni,Pepperoni,cat_pizzas,product,Unidades,0,14000,/images/productos/piz_peperoni.jpg
-piz_fugazzeta,Fugazzeta,cat_pizzas,product,Unidades,0,14000,PEGAR_LINK_AQUI
-piz_grinch,Grinch (fugazzeta con pesto),cat_pizzas,product,Unidades,0,14000,/images/productos/piz_grinch.png
-piz_caprese,Caprese,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
-piz_borromeo,Borromeo (panceta),cat_pizzas,product,Unidades,0,17000,/images/productos/piz_borromeo.jpeg
-piz_super_pesto,Super Pesto,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
-piz_champi,Champignon,cat_pizzas,product,Unidades,0,17000,/images/productos/piz_champi.jpg
-piz_champi_veg,Champignon veggie,cat_pizzas,product,Unidades,0,17000,PEGAR_LINK_AQUI
-piz_palmitos,Palmitos y jamon,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_palmitos.jpg
-piz_anana,Anana,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anana.jpg
-piz_anchoas,Anchoas,cat_pizzas,product,Unidades,0,18000,/images/productos/piz_anchoas.jpeg
-piz_super_gordo,Super gordo (fugazzeta rellena),cat_pizzas,product,Unidades,0,27000,PEGAR_LINK_AQUI
-promo_2_muzza,PROMO 2 Mozzarellas,cat_pizzas,product,Unidades,0,22000,PEGAR_LINK_AQUI
-mit_muzza,½ Mozzarella,cat_mitades,product,Unidades,0,6000,
-mit_especial,½ Especial,cat_mitades,product,Unidades,0,7000,/images/productos/piz_especial.jpg
-mit_4q_ahum,½ Cuatro quesos ahumado,cat_mitades,product,Unidades,0,7000,/images/productos/piz_4q_ahum.jpg
-mit_cuatro_quesos,½ Cuatro Quesos,cat_mitades,product,Unidades,0,7000,/images/productos/piz_cuatro_quesos.jpg
-mit_rucula_cru,½ Rucula y jamon crudo,cat_mitades,product,Unidades,0,7000,/images/productos/piz_rucula_cru.png
-mit_rucula_veg,½ Rucula veggie,cat_mitades,product,Unidades,0,7000,
-mit_napo_ajo,½ Napolitana con ajo,cat_mitades,product,Unidades,0,7000,
-mit_napo_veg,½ Napolitana vegana,cat_mitades,product,Unidades,0,7000,
-mit_peperoni,½ Pepperoni,cat_mitades,product,Unidades,0,7000,/images/productos/piz_peperoni.jpg
-mit_fugazzeta,½ Fugazzeta,cat_mitades,product,Unidades,0,7000,
-mit_grinch,½ Grinch (fugazzeta con pesto),cat_mitades,product,Unidades,0,7000,/images/productos/piz_grinch.png
-mit_caprese,½ Caprese,cat_mitades,product,Unidades,0,8500,
-mit_borromeo,½ Borromeo (panceta),cat_mitades,product,Unidades,0,8500,/images/productos/piz_borromeo.jpeg
-mit_super_pesto,½ Super Pesto,cat_mitades,product,Unidades,0,8500,
-mit_champi,½ Champignon,cat_mitades,product,Unidades,0,8500,/images/productos/piz_champi.jpg
-mit_champi_veg,½ Champignon veggie,cat_mitades,product,Unidades,0,8500,
-mit_palmitos,½ Palmitos y jamon,cat_mitades,product,Unidades,0,9000,/images/productos/piz_palmitos.jpg
-mit_anana,½ Anana,cat_mitades,product,Unidades,0,9000,/images/productos/piz_anana.jpg
-mit_anchoas,½ Anchoas,cat_mitades,product,Unidades,0,9000,/images/productos/piz_anchoas.jpeg
-venta_pinta_gold,Pinta Golden,cat_birra_venta,product,Pinta,0,4500,/images/productos/venta_pinta_gold.png
-venta_litro_gold,Recarga 1 Litro Golden,cat_birra_venta,product,Unidades,0,8000,/images/productos/venta_litro_gold.jpg
-venta_pinta_roja,Pinta Roja,cat_birra_venta,product,Pinta,0,4800,/images/productos/venta_pinta_roja.jpg
-venta_litro_roja,Recarga 1 Litro Roja,cat_birra_venta,product,Unidades,0,8500,/images/productos/venta_litro_roja.png
-venta_pinta_negra,Pinta Negra,cat_birra_venta,product,Pinta,0,5000,/images/productos/venta_pinta_negra.jpg
-venta_litro_negra,Recarga 1 Litro Negra,cat_birra_venta,product,Unidades,0,9000,/images/productos/venta_litro_negra.jpg
-serv_delivery,Costo de Envío,cat_delivery,service,Unidades,0,1500,
-ins_cebolla,Cebolla Blanca,cat_mp,product,kg,800,0,
-ins_jamon_crudo,Jamón Crudo,cat_mp,product,kg,18000,0,
-ins_palmitos,Palmitos (Lata/Kg),cat_mp,product,kg,12000,0,
-ins_anchoas,Anchoas (Filet),cat_mp,product,kg,25000,0,
-ins_pesto,Salsa Pesto (Casera),cat_mp,product,kg,8000,0,
+ins_pimienta,Pimienta Negra,cat_mp,product,kg,15000,0,
+ins_sal,Sal Fina,cat_mp,product,kg,500,0,
+ins_oregano,Orégano,cat_mp,product,kg,12000,0,
+ins_ajo,Ajo Triturado,cat_mp,product,kg,8000,0,
+ins_albahaca,Albahaca Fresca,cat_mp,product,kg,20000,0,
+ins_salsa,Salsa de Tomate Base,cat_mp,product,L,2500,0,
+ins_muzzarella,Muzzarella Cilindro,cat_mp,product,kg,12000,0,
+ins_provolone,Queso Provolone,cat_mp,product,kg,25000,0,
+ins_roquefort,Queso Roquefort,cat_mp,product,kg,45000,0,
+ins_parmesano,Queso Parmesano Rallado,cat_mp,product,kg,35000,0,
+ins_jamon_cocido,Jamón Cocido Natural,cat_mp,product,kg,22000,0,
+ins_jamon_crudo,Jamón Crudo,cat_mp,product,kg,45000,0,
+ins_morrones,Morrones en Conserva,cat_mp,product,kg,18000,0,
+ins_rucula,Rúcula Fresca,cat_mp,product,kg,15000,0,
+ins_tomates_cherry,Tomates Cherry,cat_mp,product,kg,12000,0,
+ins_peperoni_r,Pepperoni Rodajas,cat_mp,product,kg,35000,0,
+ins_cebolla,Cebolla Blanca,cat_mp,product,kg,1500,0,
+ins_palmitos,Palmitos (Lata/Kg),cat_mp,product,kg,25000,0,
+ins_anana,Ananá en Rodajas,cat_mp,product,kg,12000,0,
+ins_anchoas_f,Anchoas (Filet),cat_mp,product,kg,55000,0,
+ins_panceta,Panceta Ahumada (Bacon),cat_mp,product,kg,30000,0,
+ins_pesto,Salsa Pesto (Casera),cat_mp,product,L,20000,0,
+ins_champignones,Champiñones Frescos,cat_mp,product,kg,18000,0,
+ins_aceitunas,Aceitunas Verdes,cat_mp,product,kg,10000,0,
+ins_huevos,Huevos,cat_mp,product,Unidades,500,0,
+ins_carne,Carne Picada,cat_mp,product,kg,18000,0,
+ins_pollo,Pollo,cat_mp,product,kg,12000,0,
+ins_jyq,Jamón y Queso (Relleno),cat_mp,product,kg,20000,0,
+gas_coca_15,Coca-Cola 1.5L,cat_bebidas,product,Unidades,1500,3500,
+gas_coca_225,Coca-Cola 2.25L,cat_bebidas,product,Unidades,2000,4500,
+gas_coca_z_15,Coca-Cola Zero 1.5L,cat_bebidas,product,Unidades,1500,3500,
+gas_coca_z_225,Coca-Cola Zero 2.25L,cat_bebidas,product,Unidades,2000,4500,
+gas_sprite_15,Sprite 1.5L,cat_bebidas,product,Unidades,1500,3500,
+gas_sprite_225,Sprite 2.25L,cat_bebidas,product,Unidades,2000,4500,
+gas_fanta_15,Fanta 1.5L,cat_bebidas,product,Unidades,1500,3500,
+gas_fanta_225,Fanta 2.25L,cat_bebidas,product,Unidades,2000,4500,
+gas_pepsi_15,Pepsi 1.5L,cat_bebidas,product,Unidades,1400,3400,
+gas_pepsi_225,Pepsi 2.25L,cat_bebidas,product,Unidades,1800,4400,
+gas_7up_15,7up 1.5L,cat_bebidas,product,Unidades,1400,3400,
+gas_7up_225,7up 2.25L,cat_bebidas,product,Unidades,1800,4400,
+gas_agua_cg_15,Agua con Gas 1.5L,cat_bebidas,product,Unidades,800,2000,
+gas_agua_sg_15,Agua sin Gas 1.5L,cat_bebidas,product,Unidades,800,2000,
+venta_pinta_gold,Pinta Golden,cat_birra_venta,product,Pinta,3000,6000,
+venta_litro_gold,Recarga 1 Litro Golden,cat_birra_venta,product,L,5000,10000,
+venta_pinta_roja,Pinta Roja,cat_birra_venta,product,Pinta,3200,4800,
+venta_litro_roja,Recarga 1 Litro Roja,cat_birra_venta,product,L,5500,8500,
+venta_pinta_negra,Pinta Negra,cat_birra_venta,product,Pinta,3500,5000,
+venta_litro_negra,Recarga 1 Litro Negra,cat_birra_venta,product,L,6000,9000,
+
+serv_delivery,Envío Cerca,cat_delivery,service,Unidades,0,2000,
+serv_delivery,Envío Lejos,cat_delivery,service,Unidades,0,3000,
+serv_delivery,Envío Procrear,cat_delivery,service,Unidades,0,4000,
