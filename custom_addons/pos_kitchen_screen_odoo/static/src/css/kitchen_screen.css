@@ -1,710 +1,350 @@
-.kitchen{
+.kitchen {
     height: 100vh;
     overflow: hidden;
-    }
-.kitchen .body_wrapper {
-  --white-color: #ffff;
-  --black-color: #000000;
-  --body-bg:#F9F9F9;
-  --draft:#545454;
-  --cooking: #1D89AB;
-  --completed:#0d7411a3;
-  --bg-grey:#DEDEDE;
-  --bg-blue: #DAE7EB;
-}
-.kitchen .body_wrapper{
-position: relative;
-  font-family: "Inter", sans-serif !important;
-  color: var(--text-color);
-  background-color: var(--body-bg);
-  padding: 50px 100px;
-  overflow: scroll;
-    height: 100%;
-}
-
-@media screen and (max-width: 768px) {
-  .kitchen .body_wrapper {
-    padding: 30px 15px;
-  }
-}
-.kitchen .accept_cancel,.card-bottom{
-    padding: 15px 15px;
-    text-align: center;
-    display: flex;
-    justify-content: space-evenly;
-}
-.kitchen *:focus {
-  outline: 0 !important;
-}
-
-.kitchen *:hover {
-  transition: 0.2s;
-}
-
-.kitchen *:focus {
-  outline: 0 !important;
-  box-shadow: none !important;
-}
-
-.kitchen *button:focus {
-  border: none;
-  outline: none;
-  box-shadow: none;
+    background-color: #0f0f1a;
+    color: #e0e0e0;
+    line-height: 1.4;
 }
 
 .kitchen * {
-  list-style-type: none;
-  font-family: "Inter", sans-serif !important;
-  font-size: 18px;
+    box-sizing: border-box;
 }
 
-.kitchen *:focus, *:active {
-  outline: none !important;
+.kitchen .body_wrapper {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-.kitchen.sr .load-hidden {
-  visibility: hidden;
+/* ---------- tabs ---------- */
+.kds-tabs {
+    display: flex;
+    align-items: stretch;
+    background-color: #12121f;
+    border-bottom: 2px solid #2a2a3e;
+    padding: 0;
+    flex-shrink: 0;
 }
 
-.kitchen *::selection {
-  color: #f3ebee;
-  background-color: black;
-}
-
-.kitchen *a,
-.kitchen a:visited {
-  color: #990000;
-  text-decoration: none;
-}
-
-
-.kitchen .affix {
-  top: 0;
-  width: 100%;
-  z-index: 9999 !important;
-}
-
-.kitchen {
-  scroll-behavior: smooth !important;
-}
-
-
-.kitchen .custom_padding_top {
-  padding-top: 80px;
-}
-
-.kitchen .custom_padding_bottom {
-  padding-bottom: 80px;
-}
-
-.kitchen .main_heading {
-  font-size: 36px;
-  font-weight: 500;
-  color: var(--white-color);
-  padding-bottom: 20px;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
-/* Document
-   ========================================================================== */
-/**
- * 1. Correct the line height in all browsers.
- * 2. Prevent adjustments of font size after orientation changes in iOS.
- */
-.kitchen {
-  line-height: 1.15;
-  /* 1 */
-  -webkit-text-size-adjust: 100%;
-  /* 2 */
-}
-
-/* Sections
-     ========================================================================== */
-/**
-   * Remove the margin in all browsers.
-   */
-
-/**
-   * Render the `main` element consistently in IE.
-   */
-.kitchen main {
-  display: block;
-}
-
-/**
-   * Correct the font size and margin on `h1` elements within `section` and
-   * `article` contexts in Chrome, Firefox, and Safari.
-   */
-.kitchen h1 {
-  font-size: 2em;
-  margin: 0.67em 0;
-}
-
-/* Grouping content
-     ========================================================================== */
-/**
-   * 1. Add the correct box sizing in Firefox.
-   * 2. Show the overflow in Edge and IE.
-   */
-.kitchen hr {
-  box-sizing: content-box;
-  /* 1 */
-  height: 0;
-  /* 1 */
-  overflow: visible;
-  /* 2 */
-}
-
-/**
-   * 1. Correct the inheritance and scaling of font size in all browsers.
-   * 2. Correct the odd `em` font sizing in all browsers.
-   */
-.kitchen pre {
-  font-family: monospace, monospace;
-  /* 1 */
-  font-size: 1em;
-  /* 2 */
-}
-
-/* Text-level semantics
-     ========================================================================== */
-/**
-   * Remove the gray background on active links in IE 10.
-   */
-.kitchen a {
-  background-color: transparent;
-}
-
-/**
-   * 1. Remove the bottom border in Chrome 57-
-   * 2. Add the correct text decoration in Chrome, Edge, IE, Opera, and Safari.
-   */
-.kitchen abbr[title] {
-  border-bottom: none;
-  /* 1 */
-  text-decoration: underline;
-  /* 2 */
-  text-decoration: underline dotted;
-  /* 2 */
-}
-
-/**
-   * Add the correct font weight in Chrome, Edge, and Safari.
-   */
-.kitchen b,
-.kitchen strong {
-  font-weight: bolder;
-}
-
-/**
-   * 1. Correct the inheritance and scaling of font size in all browsers.
-   * 2. Correct the odd `em` font sizing in all browsers.
-   */
-.kitchen code,
-.kitchen kbd,
-.kitchen samp {
-  font-family: monospace, monospace;
-  /* 1 */
-  font-size: 1em;
-  /* 2 */
-}
-
-/**
-   * Add the correct font size in all browsers.
-   */
-.kitchen small {
-  font-size: 80%;
-}
-
-/**
-   * Prevent `sub` and `sup` elements from affecting the line height in
-   * all browsers.
-   */
-.kitchen sub,
-.kitchen sup {
-  font-size: 75%;
-  line-height: 0;
-  position: relative;
-  vertical-align: baseline;
-}
-
-.kitchen sub {
-  bottom: -0.25em;
-}
-
-.kitchen sup {
-  top: -0.5em;
-}
-
-/* Embedded content
-     ========================================================================== */
-/**
-   * Remove the border on images inside links in IE 10.
-   */
-.kitchen img {
-  border-style: none;
-}
-
-/* Forms
-     ========================================================================== */
-/**
-   * 1. Change the font styles in all browsers.
-   * 2. Remove the margin in Firefox and Safari.
-   */
-.kitchen button,
-input,
-.kitchen optgroup,
-.kitchen select,
-.kitchen textarea {
-  font-family: inherit;
-  /* 1 */
-  font-size: 100%;
-  /* 1 */
-  line-height: 1.15;
-  /* 1 */
-  margin: 0;
-  /* 2 */
-}
-
-/**
-   * Show the overflow in IE.
-   * 1. Show the overflow in Edge.
-   */
-.kitchen button,
-.kitchen input {
-  /* 1 */
-  overflow: visible;
-}
-
-/**
-   * Remove the inheritance of text transform in Edge, Firefox, and IE.
-   * 1. Remove the inheritance of text transform in Firefox.
-   */
-.kitchen button,
-select {
-  /* 1 */
-  text-transform: none;
-}
-
-/**
-   * Correct the inability to style clickable types in iOS and Safari.
-   */
-.kitchen button,
-.kitchen [type="button"],
-.kitchen [type="reset"],
-.kitchen [type="submit"] {
-  -webkit-appearance: button;
-}
-
-/**
-   * Remove the inner border and padding in Firefox.
-   */
-.kitchen button::-moz-focus-inner,
-.kitchen [type="button"]::-moz-focus-inner,
-.kitchen [type="reset"]::-moz-focus-inner,
-.kitchen [type="submit"]::-moz-focus-inner {
-  border-style: none;
-  padding: 0;
-}
-
-/**
-   * Restore the focus styles unset by the previous rule.
-   */
-.kitchen button:-moz-focusring,
-.kitchen [type="button"]:-moz-focusring,
-.kitchen [type="reset"]:-moz-focusring,
-.kitchen [type="submit"]:-moz-focusring {
-  outline: 1px dotted ButtonText;
-}
-
-/**
-   * Correct the padding in Firefox.
-   */
-.kitchen fieldset {
-  padding: 0.35em 0.75em 0.625em;
-}
-
-/**
-   * 1. Correct the text wrapping in Edge and IE.
-   * 2. Correct the color inheritance from `fieldset` elements in IE.
-   * 3. Remove the padding so developers are not caught out when they zero out
-   *    `fieldset` elements in all browsers.
-   */
-.kitchen legend {
-  box-sizing: border-box;
-  /* 1 */
-  color: inherit;
-  /* 2 */
-  display: table;
-  /* 1 */
-  max-width: 100%;
-  /* 1 */
-  padding: 0;
-  /* 3 */
-  white-space: normal;
-  /* 1 */
-}
-
-/**
-   * Add the correct vertical alignment in Chrome, Firefox, and Opera.
-   */
-.kitchen progress {
-  vertical-align: baseline;
-}
-
-/**
-   * Remove the default vertical scrollbar in IE 10+.
-   */
-.kitchen textarea {
-  overflow: auto;
-}
-
-/**
-   * 1. Add the correct box sizing in IE 10.
-   * 2. Remove the padding in IE 10.
-   */
-.kitchen [type="checkbox"],
-.kitchen [type="radio"] {
-  box-sizing: border-box;
-  /* 1 */
-  padding: 0;
-  /* 2 */
-}
-
-/**
-   * Correct the cursor style of increment and decrement buttons in Chrome.
-   */
-.kitchen [type="number"]::-webkit-inner-spin-button,
-.kitchen [type="number"]::-webkit-outer-spin-button {
-  height: auto;
-}
-
-/**
-   * 1. Correct the odd appearance in Chrome and Safari.
-   * 2. Correct the outline style in Safari.
-   */
-.kitchen [type="search"] {
-  -webkit-appearance: textfield;
-  /* 1 */
-  outline-offset: -2px;
-  /* 2 */
-}
-
-/**
-   * Remove the inner padding in Chrome and Safari on macOS.
-   */
-.kitchen [type="search"]::-webkit-search-decoration {
-  -webkit-appearance: none;
-}
-
-/**
-   * 1. Correct the inability to style clickable types in iOS and Safari.
-   * 2. Change font properties to `inherit` in Safari.
-   */
-.kitchen ::-webkit-file-upload-button {
-  -webkit-appearance: button;
-  /* 1 */
-  font: inherit;
-  /* 2 */
-}
-
-/* Interactive
-     ========================================================================== */
-/*
-   * Add the correct display in Edge, IE 10+, and Firefox.
-   */
-.kitchen details {
-  display: block;
-}
-
-/*
-   * Add the correct display in all browsers.
-   */
-.kitchen summary {
-  display: list-item;
-}
-
-/* Misc
-     ========================================================================== */
-/**
-   * Add the correct display in IE 10+.
-   */
-.kitchen template {
-  display: none;
-}
-
-/**
-   * Add the correct display in IE 10.
-   */
-.kitchen [hidden] {
-  display: none;
-}
-
-.kitchen .btn {
-  border: none !important;
-  outline: 0 !important;
-  transition: 0.5s;
-}
-
-.kitchen .btn-primary {
-  border-radius: 4px;
-  font-size: 14px;
-
-  letter-spacing: normal;
-  text-decoration: none;
-  padding: 12px 25px;
-  position: relative;
-  font-weight:700;
-  color: var(--white-color) !important;
-  transition: all 0.3s;
-  background-color: var(--cooking) !important;
-  text-transform: uppercase;
-  border:1px solid !important;
-  border-color:var(--cooking) !important;
-}
-
-.kitchen .btn-primary:hover {
-  color:  var(--cooking) !important;
-  transition: all 0.3s;
-  background-color: transparent !important;
-
-}
-
-
-.kitchen .btn-secondary {
-  border-radius: 4px;
-  font-size: 14px;
-  text-transform: uppercase;
-  border:1px solid !important;
-  border-color:var(--draft) !important;
-  letter-spacing: normal;
-  text-decoration: none;
-  padding: 12px 25px;
-  position: relative;
-  font-weight:700;
-  color: var(--white-color) !important;
-  transition: all 0.3s;
-  background-color: var(--draft) !important;
-
-}
-
-.kitchen .btn-secondary:hover {
-  color:  var(--draft) !important;
-  transition: all 0.3s;
-  background-color: transparent !important;
-
-}
-
-.kitchen .btn-transparent {
-  padding: 0;
-  font-size: 12px;
-}
-
-.kitchen .infiniarc_banner {
-  padding-top: 50px;
-  margin-bottom: 100px;
-}
-
-.kitchen .infiniarc_banner .banner_bg {
-  background-image: url(./../assets/banner/banne_1.jpg);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-  height: 50vh;
-  position: relative;
-  border-radius: 10px;
-}
-
-.kitchen .infiniarc_banner .banner_bg_1 {
-  background-image: url(./../assets/banner/banne_1.jpg);
-}
-
-.kitchen .infiniarc_banner .banner_bg_2 {
-  background-image: url(./../assets/banner/banner_2.jpg);
-}
-
-.kitchen .infiniarc_banner .banner_bg_3 {
-  background-image: url(./../assets/banner/banner_3.jpg);
-}
-
-.kitchen .top_bar {
-  background-color: var(--white-color);
-  padding: 20px 15px 10px 25px;
-  box-shadow: 0px 2px 4px 1px rgba(0, 0, 0, 0.25);
-  border-radius: 5px;
-  margin-top: 20px;
-}
-.kitchen .fixed-top {
-    position: fixed;
-    top: 20px;
-    right: 0;
-    left: 0;
-    z-index: 1030;
-    margin: auto;
-    width: 69%;
-}
-
-.kitchen .top_bar ul {
-  padding-left: 0;
-  display: flex;
-  flex-wrap: wrap;
-  width : 100%;
-  justify-content: space-evenly;
-}
-
-.kitchen .top_bar ul li {
-  padding-right: 25px;
-}
-
-.kitchen .top_bar ul li a {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-}
-
-.kitchen .top_bar ul li a .icon {
-  background-color: var(--white-color);
-  padding: 6px 8px;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-}
-
-.kitchen .top_bar ul li a .icon svg {
-  height: 30px !important;
-  display: block;
-}
-
-
-.kitchen .top_bar ul li a span {
-  margin-left: 15px;
-  color: var(--draft);
-  font-size: 30px;
-  font-weight: 700;
-  padding-top: 5px;
-}
-
-.kitchen .top_bar ul li a .cooking {
-  color: var(--cooking) !important;
-}
-
-.kitchen .top_bar ul li a .completed {
-  color: var(--completed);
-}
-
-.kitchen .screen_info .wrapper .card {
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  transition: box-shadow 0.3s ease-out, transform 0.3s ease-out, opacity 0.2s ease-out;
-  transform: translate(0px, 0px);
-  -webkit-transform: translate(0px, 0px);
-  -moz-transform: translate(0px, 0px);
-  transition: 0.5s;
-  margin-bottom: 40px;
-}
-
-.kitchen .screen_info .wrapper .card:hover {
-  transform: translate(0, -4px);
-  -webkit-transform: translate(0, -4px);
-  -moz-transform: translate(0, -4px);
-  transition: 0.5s;
-  box-shadow: rgba(45, 45, 45, 0.05) 0px 2px 2px, rgba(49, 49, 49, 0.05) 0px 4px 4px, rgba(42, 42, 42, 0.05) 0px 8px 8px, rgba(32, 32, 32, 0.05) 0px 16px 16px, rgba(49, 49, 49, 0.05) 0px 32px 32px, rgba(35, 35, 35, 0.05) 0px 64px 64px;
-}
-
-.kitchen .screen_info .wrapper .card .card-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  border: none;
-}
-
-.kitchen .screen_info .wrapper .card .card-header .left {
-  display: flex;
-}
-
-.kitchen .screen_info .wrapper .card .card-header .left .icon {
-  background-color: var(--white-color);
-  padding: 6px 8px;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  height: 55px;
-  width: 45px;
-  border-radius: 5px;
-  margin-right: 10px;
-
-  display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.kitchen .screen_info .wrapper .card .card-header .left .status h4 {
- font-size: 26px;
-    color: var(--draft);
-    text-transform: capitalize;
-    font-weight: 700;
-    margin-bottom: 0;
-}
-
-.kitchen .screen_info .wrapper .card .card-header .left .status .mt {
-  margin-top: -10px;
-  color: var(--draft);
-}
-
-.kitchen .screen_info .wrapper .card .card-header .left .status .c_blue {
-  color: var(--cooking);
-}
-
-.kitchen .screen_info .wrapper .card .card-header .left .status .c_white {
-  color: var(--white-color);
-}
-@media (max-width: 1287px) {
-      /* Responsive styles */
-      .kitchen .screen_info .wrapper .card .card-header .right {
-padding-top:0px;
-}
-
-    }
-.kitchen .screen_info .wrapper .card .card-header .right {
-padding-top:8px;
-}
-.kitchen .screen_info .wrapper .card .card-header .right span {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.kitchen .screen_info .wrapper .card .bg_grey {
-  background-color: var(--bg-grey);
-}
-
-.kitchen .screen_info .wrapper .card .bg_blue {
-  background-color: var(--bg-blue);
-  color: var(--cooking) !important;
-}
-
-.kitchen .screen_info .wrapper .card .bg_green {
-  background-color: var(--completed);
-  color: var(--white-color);
-}
-
-.kitchen .screen_info .wrapper .card .list-group .list-group-item {
-  font-size: 20px;
-    font-weight: 500;
-    color: var(--draft);
-    padding: 20px 30px;
-    text-align: start;
-    line-height: 30px;
-}
-
-.kitchen .screen_info .wrapper .card .list-group .list-group-item span {
-  font-size: 20px;
-  font-weight: 700;
-  margin-right: 5px;
-}
-.kitchen_order_count{
+.kds-tab {
+    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;    margin-top: 10px;
-    font-size: 16px !important;
-    border-radius: 5px !important;
-    font-weight: bold !important;
-    background-color: #FA3E3E;
-    color:white !important;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 12px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #8888a0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: none;
+    border-bottom: 4px solid transparent;
+    background: none;
+    transition: color 0.2s, border-bottom-color 0.2s;
 }
+
+.kds-tab:hover {
+    color: #c0c0d0;
+}
+
+.kds-tab--active {
+    color: #ffffff;
+    font-weight: 700;
+    border-bottom: 4px solid var(--tab-color, #fff);
+}
+
+.kds-tab[data-state="draft"] { --tab-color: #f59e0b; }
+.kds-tab[data-state="draft"].kds-tab--active { color: #f59e0b; }
+
+.kds-tab[data-state="waiting"] { --tab-color: #ef4444; }
+.kds-tab[data-state="waiting"].kds-tab--active { color: #ef4444; }
+
+.kds-tab[data-state="ready"] { --tab-color: #22c55e; }
+.kds-tab[data-state="ready"].kds-tab--active { color: #22c55e; }
+
+.kds-tab[data-state="delivered"] { --tab-color: #3b82f6; }
+.kds-tab[data-state="delivered"].kds-tab--active { color: #3b82f6; }
+
+.kds-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.kds-tab[data-state="draft"] .kds-count-badge { background-color: #f59e0b; color: #000; }
+.kds-tab[data-state="waiting"] .kds-count-badge { background-color: #ef4444; color: #fff; }
+.kds-tab[data-state="ready"] .kds-count-badge { background-color: #22c55e; color: #000; }
+.kds-tab[data-state="delivered"] .kds-count-badge { background-color: #3b82f6; color: #fff; }
+
+/* ---------- grid ---------- */
+.kds-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    padding: 14px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: start;
+}
+
+@media (max-width: 1440px) { .kds-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1024px) { .kds-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .kds-grid { grid-template-columns: 1fr; } }
+
+/* ---------- card ---------- */
+.kds-card {
+    background-color: #1e1e30;
+    border-radius: 12px;
+    border: 2px solid #2e2e48;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: transform 0.12s ease, border-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.kds-card:active {
+    transform: scale(0.98);
+}
+
+.kds-card[data-state="draft"]:hover { border-color: #f59e0b; }
+.kds-card[data-state="waiting"]:hover { border-color: #ef4444; }
+.kds-card[data-state="ready"]:hover { border-color: #22c55e; }
+.kds-card[data-state="delivered"]:hover { border-color: #3b82f6; }
+
+/* ---------- pulse for new orders ---------- */
+@keyframes kdsPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(245,158,11,0.7); }
+    70%  { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
+    100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+}
+
+.kds-card[data-state="draft"].kds-card--new {
+    animation: kdsPulse 2s infinite;
+}
+
+/* ---------- header ---------- */
+.kds-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 14px 16px;
+    gap: 10px;
+}
+
+.kds-card[data-state="draft"] .kds-card-header     { background-color: #f59e0b; color: #000; }
+.kds-card[data-state="waiting"] .kds-card-header   { background-color: #ef4444; color: #fff; }
+.kds-card[data-state="ready"] .kds-card-header     { background-color: #22c55e; color: #000; }
+.kds-card[data-state="delivered"] .kds-card-header { background-color: #3b82f6; color: #fff; }
+
+.order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.order-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.order-customer {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.kds-badge-mesa {
+    display: inline-block;
+    background-color: #2563eb;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 12px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.kds-badge-delivery {
+    display: inline-block;
+    background-color: #f97316;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 12px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+/* ---------- elapsed time ---------- */
+.kds-elapsed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.kds-elapsed-num {
+    font-size: 1.6rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.kds-elapsed-unit {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.kds-elapsed--green  { color: #166534; }
+.kds-elapsed--amber  { color: #d97706; }
+.kds-elapsed--red    { color: #dc2626; }
+
+.kds-card[data-state="draft"] .kds-elapsed     { color: #000; }
+.kds-card[data-state="waiting"] .kds-elapsed   { color: #fff; }
+.kds-card[data-state="ready"] .kds-elapsed     { color: #000; }
+.kds-card[data-state="delivered"] .kds-elapsed { color: #fff; }
+
+/* ---------- body (product lines) ---------- */
+.kds-card-body {
+    padding: 12px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.kds-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.05rem;
+    color: #e0e0e0;
+    padding: 6px 10px;
+    background-color: #2a2a3e;
+    border-radius: 6px;
+}
+
+.kds-line .qty {
+    font-weight: 700;
+    color: #fff;
+}
+
+.kds-line .product-name {
+    flex: 1;
+}
+
+.kds-line--ready {
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+
+.kds-line-btn {
+    background: #22c55e;
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.kds-line-btn:hover {
+    filter: brightness(1.2);
+}
+
+/* ---------- notes ---------- */
+.kds-note {
+    background-color: #fbbf24;
+    color: #000;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.kds-note::before {
+    content: "!";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background-color: #000;
+    color: #fbbf24;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+/* ---------- next-action hint ---------- */
+.kds-next-action {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #2e2e48;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+/* ---------- footer / cancel ---------- */
+.kds-card-footer {
+    padding: 6px 16px 10px;
+    text-align: center;
+}
+
+.kds-btn-cancel {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.kds-btn-cancel:hover {
+    color: #f87171;
+    text-decoration: underline;
+}
+
+/* ---------- Odoo overrides ---------- */
+.o_pj_dashboard { padding: 0 !important; }
+.o_pj_dashboard .row { margin: 0; }
+.o_pj_dashboard .row > * { padding: 0; }
+.infiniarc_banner { display: none !important; }

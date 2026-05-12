@@ -29,12 +29,13 @@ class PosOrder(models.Model):
     _inherit = "pos.order"
 
     order_status = fields.Selection(string="Order Status",
-                                    selection=[("draft", "Cooking Orders"),
-                                               ("waiting", "Ready Orders"),
-                                               ("ready", "Completed Orders"),
-                                               ("cancel", "Cancelled Orders")],
+                                    selection=[("draft", "Pendiente"),
+                                               ("waiting", "En Horno"),
+                                               ("ready", "Listo"),
+                                               ("delivered", "Entregado"),
+                                               ("cancel", "Cancelado")],
                                     default='draft',
-                                    help='Kitchen workflow status: draft=cooking, waiting=ready, ready=completed')
+                                    help='Kitchen workflow: pendiente → en horno → listo → entregado')
     order_ref = fields.Char(string="Order Reference",
                             help='Reference of the order')
     is_cooking = fields.Boolean(string="Is Cooking",
@@ -90,8 +91,8 @@ class PosOrder(models.Model):
                         has_kitchen_items = True
                 if has_kitchen_items:
                     order.is_cooking = True
-                    order.order_ref = order.name  # Set order_ref here
-                    if order.order_status != 'draft':
+                    order.order_ref = order.name
+                    if not order.order_status or order.order_status not in dict(self._fields['order_status'].selection):
                         order.order_status = 'draft'
                     orders_to_notify.append(order)
         self.env.cr.commit()
@@ -119,7 +120,7 @@ class PosOrder(models.Model):
         pos_orders = self.env["pos.order"].search([
             ("config_id", "=", shop_id),
             ("is_cooking", "=", True),
-            ("order_status", "not in", ["ready", "cancel"]),
+            ("order_status", "not in", ["delivered", "cancel"]),
         ], order="date_order")
         kitchen_orders = self.env["pos.order"]
         for order in pos_orders:
@@ -197,8 +198,8 @@ class PosOrder(models.Model):
 
     @api.onchange("order_status")
     def _onchange_is_cooking(self):
-        """Automatically unmark as 'cooking' when order status becomes 'ready'."""
-        if self.order_status == "ready":
+        """Automatically unmark as 'cooking' when order status becomes 'delivered' or 'cancel'."""
+        if self.order_status in ("delivered", "cancel"):
             self.is_cooking = False
 
     def order_progress_draft(self):
@@ -255,8 +256,19 @@ class PosOrder(models.Model):
         channel = f'pos_order_created_{self.config_id.id}'
         self.env["bus.bus"]._sendone(channel, "notification", message)
 
-    @api.model
-    def check_order(self, order_name):
+    def order_progress_delivered(self):
+        """Action for 'Entregado' button: Move order from 'ready' (listo) to 'delivered' (entregado)."""
+        self.ensure_one()
+        self.order_status = "delivered"
+        self.is_cooking = False
+        message = {
+            'res_model': self._name,
+            'message': 'pos_order_delivered',
+            'order_id': self.id,
+            'config_id': self.config_id.id
+        }
+        channel = f'pos_order_created_{self.config_id.id}'
+        self.env["bus.bus"]._sendone(channel, "notification", message)
         """Check if an order exists, has kitchen items, and is not yet completed/cancelled."""
         pos_order = self.env['pos.order'].sudo().search(
             [('pos_reference', '=', str(order_name))], limit=1)
@@ -274,7 +286,7 @@ class PosOrder(models.Model):
                     [c.name for c in line.product_id.pos_categ_ids if c.id not in kitchen_screen.pos_categ_ids.ids])
         if unhandled_categories:
             return {'category': ", ".join(list(set(unhandled_categories)))}
-        if pos_order.order_status not in ['ready', 'cancel']:
+        if pos_order.order_status in ['ready', 'delivered', 'cancel']:
             return True
         else:
             return False
@@ -307,11 +319,11 @@ class PosOrder(models.Model):
         for line in kitchen_lines:
             line.write({
                 'is_cooking': True,
-                'order_status': 'draft'
+                'order_status': line.order_status if line.order_status in dict(self.env['pos.order.line']._fields['order_status'].selection) else 'draft'
             })
         pos_order.write({
             'is_cooking': True,
-            'order_status': 'draft'
+            'order_status': pos_order.order_status if pos_order.order_status in dict(self._fields['order_status'].selection) else 'draft'
         })
         message = {
             'res_model': 'pos.order',
@@ -335,7 +347,7 @@ class PosOrder(models.Model):
         kitchen_orders = self.search([
             ('config_id', '=', config_id),
             ('is_cooking', '=', True),
-            ('order_status', 'not in', ['ready', 'cancel'])
+            ('order_status', 'not in', ['delivered', 'cancel'])
         ])
         orders_data = []
         for order in kitchen_orders:
@@ -406,9 +418,10 @@ class PosOrderLine(models.Model):
     _inherit = "pos.order.line"
 
     order_status = fields.Selection(
-        selection=[('draft', 'Cooking'), ('waiting', 'Ready'),
-                   ('ready', 'Completed'), ('cancel', 'Cancel')], default='draft',
-        help='Kitchen workflow status: draft=cooking, waiting=ready, ready=completed')
+        selection=[('draft', 'Pendiente'), ('waiting', 'En Horno'),
+                   ('ready', 'Listo'), ('delivered', 'Entregado'),
+                   ('cancel', 'Cancelado')], default='draft',
+        help='Kitchen workflow: pendiente → en horno → listo → entregado')
     order_ref = fields.Char(related='order_id.order_ref',
                             string='Order Reference',
                             help='Order reference of order')
