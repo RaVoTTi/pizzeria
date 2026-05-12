@@ -11,44 +11,52 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
 echo ""
-echo "[1/10] Installing Odoo modules if needed + UoMs..."
+echo "[1/12] Installing Odoo modules if needed + UoMs..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_initial.py
 
 echo ""
-echo "[2/10] Creating product categories..."
+echo "[2/12] Creating product categories..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_01_categories.py
 
 echo ""
-echo "[3/10] Creating ingredients, drinks, delivery, and Bollo..."
+echo "[3/12] Creating ingredients, drinks, delivery, and Bollo..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_02_ingredients.py
 
 echo ""
-echo "[4/10] Creating saleable products (pizzas, mitades, empanadas)..."
+echo "[4/12] Creating saleable products (pizzas, mitades, empanadas)..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_03_products.py
 
 echo ""
-echo "[5/10] Creating Bill of Materials..."
+echo "[5/12] Creating Bill of Materials..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_04_boms.py
 
 echo ""
-echo "[6/10] Setting up POS categories..."
+echo "[6/12] Setting up POS categories..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_05_pos.py
 
 echo ""
-echo "[7/10] Setting up restaurant floor plans..."
+echo "[7/12] Setting up restaurant floor plans..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_floors.py
 
 echo ""
-echo "[8/10] Setting language to Spanish..."
+echo "[8/12] Setting language to Spanish..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/set_language_spanish.py
 
 echo ""
-echo "[9/10] Removing taxes from products..."
+echo "[9/12] Removing taxes from products..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/remove_taxes.py
 
 echo ""
-echo "[10/10] Loading initial stock quantities..."
+echo "[10/12] Loading initial stock quantities..."
 docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_test_inventory.py
+
+echo ""
+echo "[11/12] Setting up Mercado Pago terminal..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_mercado_pago.py
+
+echo ""
+echo "[12/12] Setting up POS Kitchen Screen..."
+docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/setup_kitchen_display.py
 
 echo ""
 echo "  Running BoM validation diagnostic..."

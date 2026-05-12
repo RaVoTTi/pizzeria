@@ -20,11 +20,26 @@ Tablet (POS) ──→ Nginx (:80) ──→ Odoo (:8069) ──→ PostgreSQL (
 
 ```
 odoo-pizzeria/
-├── addons/
-│   └── import_pizzas.py        # Data import script (categories, products, BoMs, POS config)
+├── addons/                      # Import & setup scripts (run via odoo shell)
+│   ├── import_initial.py        # Installs base modules + UoMs
+│   ├── import_01_categories.py  # Product categories
+│   ├── import_02_ingredients.py # Raw ingredients + Bollo de Masa
+│   ├── import_03_products.py    # Saleable products (pizzas, empanadas, mitades)
+│   ├── import_04_boms.py        # Phantom BoMs
+│   ├── import_05_pos.py         # POS categories & config
+│   ├── import_lib.py            # Shared library (CSV reader, helpers)
+│   ├── setup_floors.py          # Restaurant floor plan (18 tables)
+│   ├── setup_kitchen_display.py # Kitchen screen configuration
+│   ├── setup_mercado_pago.py    # Mercado Pago payment terminal
+│   ├── setup_test_inventory.py  # Initial stock quantities
+│   ├── set_language_spanish.py  # Language switch to Spanish
+│   ├── remove_taxes.py          # Tax removal from products
+│   └── validate_boms.py         # BoM diagnostic/validation
 ├── config/
-│   ├── nginx.conf              # Reverse proxy config (HTTP, HTTPS stubs ready)
-│   └── odoo.conf               # Odoo config (db, proxy, workers)
+│   ├── nginx.conf               # Reverse proxy config (HTTP, HTTPS stubs ready)
+│   └── odoo.conf                # Odoo config (db, proxy, workers, addons_path)
+├── custom_addons/               # Third-party/custom Odoo modules
+│   └── pos_kitchen_screen_odoo/ # POS Kitchen Screen (Cybrosys, v18.0.1.2.0)
 ├── csv/
 │   ├── categories.csv           # 11 product categories (hierarchical tree)
 │   ├── products.csv             # 78 products (ingredients, pizzas, drinks, empanadas)
@@ -40,6 +55,9 @@ odoo-pizzeria/
 │   ├── history.md               # Full phased plan (7 phases) with refinements
 │   └── network-setup.md         # Hardware, static IPs, DNS, Ubuntu setup
 ├── scripts/
+│   ├── nuclear-reset.sh         # Full teardown + fresh init + data import
+│   ├── clean-data.sh            # Wipe DB data only (preserve Docker)
+│   ├── import-data.sh           # 12-step data import pipeline
 │   ├── backup.sh                # Nightly pg_dump with 7-day retention
 │   ├── restore.sh               # Database restore with confirmation prompt
 │   └── odoo-shell.sh            # Odoo shell helper
@@ -86,16 +104,36 @@ Todos (All)
     └── Deliveries
 ```
 
+## Custom Addons
+
+Custom Odoo modules live in `custom_addons/`. Each subdirectory is a standalone
+module (must contain `__manifest__.py` at its root). The directory is mounted
+into the Docker container at `/mnt/custom-addons` and included in `addons_path`
+in `config/odoo.conf`.
+
+To add a new custom module:
+1. Place the module folder directly inside `custom_addons/` (no extra nesting).
+2. Run `scripts/nuclear-reset.sh --skip-docker` to reinstall modules and reimport data.
+   Or add the module name to `nuclear-reset.sh`'s `-i` list for full resets.
+
 ## Data Import Pipeline
 
-The `import_pizzas.py` script runs inside the Odoo shell and:
+The `import-data.sh` script runs 12 sequential odoo shell invocations:
 
-1. Installs required modules (`stock`, `mrp`, `point_of_sale`)
-2. Creates custom UoM ("Pinta")
-3. Creates product categories from `categories.csv`
-4. Creates products from `products.csv` + `producto_masa.csv`
-5. Creates phantom BoMs from `receta_del_bollo.csv` + `receta_pizzas_con_masa.csv`
-6. Updates POS config name to "Pizzeria El Gordo"
+1. `import_initial.py` — Installs required modules + custom UoMs
+2. `import_01_categories.py` — Product categories from `categories.csv`
+3. `import_02_ingredients.py` — Raw ingredients + Bollo de Masa intermediate product
+4. `import_03_products.py` — Saleable products (pizzas, mitades, empanadas)
+5. `import_04_boms.py` — Phantom BoMs from `receta_del_bollo.csv` + `receta_pizzas_con_masa.csv`
+6. `import_05_pos.py` — POS categories & config
+7. `setup_floors.py` — Restaurant floor plan (18 tables)
+8. `set_language_spanish.py` — Language switch to Spanish
+9. `remove_taxes.py` — Tax removal from all products
+10. `setup_test_inventory.py` — Initial stock quantities
+11. `setup_mercado_pago.py` — Mercado Pago payment terminal setup
+12. `setup_kitchen_display.py` — Kitchen Display System (KDS) configuration
+
+Closes with `validate_boms.py` diagnostic and a container restart.
 
 ## Access
 
@@ -109,6 +147,9 @@ The `import_pizzas.py` script runs inside the Odoo shell and:
 - `stock` — Inventory management
 - `mrp` — Manufacturing / BoMs (phantom type)
 - `point_of_sale` — POS interface for tablets
+- `pos_restaurant` — Table management, floor plans
+- `pos_preparation_display` — Order preparation display
+- `pos_kitchen_screen_odoo` — Kitchen screen (Cybrosys, loaded from `custom_addons/`)
 
 ## Threats / Risks (from docs)
 

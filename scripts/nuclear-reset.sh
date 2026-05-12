@@ -35,7 +35,7 @@ docker compose up -d
 echo "  Waiting for database to be ready (20s)..."
 sleep 20
 docker compose run --rm web odoo server -c /etc/odoo/odoo.conf -d elgordo \
-  -i base,stock,mrp,point_of_sale,pos_restaurant --stop-after-init
+  -i base,stock,mrp,point_of_sale,pos_restaurant,pos_kitchen_screen_odoo --stop-after-init
 
 echo ""
 echo "[2/3] Importing all data..."

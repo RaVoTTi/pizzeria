@@ -22,12 +22,16 @@ services:
       - odoo-web-data:/var/lib/odoo
       - ./config:/etc/odoo
       - ./addons:/mnt/extra-addons
+      - ./custom_addons:/mnt/custom-addons
       - ./csv:/csv:ro
       - ./images:/images:ro
     environment:
       - HOST=db
       - USER=${ODOO_DB_USER}
       - PASSWORD=${ODOO_DB_PASSWORD}
+      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
+      - MP_WEBHOOK_SECRET=${MP_WEBHOOK_SECRET}
+      - MP_TERMINAL_SERIAL=${MP_TERMINAL_SERIAL}
     networks:
       - frontend
       - backend
