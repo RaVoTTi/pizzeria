@@ -13,7 +13,8 @@ services:
       - frontend
 
   web:
-    image: odoo:19.0
+    build: .
+    image: odoo-pizzeria:19.0
     restart: unless-stopped
     depends_on:
       db:
@@ -25,6 +26,7 @@ services:
       - ./custom_addons:/mnt/custom-addons
       - ./csv:/csv:ro
       - ./images:/images:ro
+      - /var/run/cups/cups.sock:/var/run/cups/cups.sock
     environment:
       - HOST=db
       - USER=${ODOO_DB_USER}

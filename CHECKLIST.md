@@ -1,218 +1,328 @@
-# Implementation Checklist — Pizzeria El Gordo
+# CHECKLIST — Pizzeria El Gordo (Technical IaC Reference)
 
-Based on the plans in `docs/plan.md`, `docs/history.md`, and `docs/network-setup.md`.
-Cross-referenced against actual files in the repository.
+## Architecture: Declarative Provisioning + Seed Data Pipeline
 
----
+```
+CSV/ + images/  ──→  addons/*.py (odoo shell)  ──→  Odoo DB (disposable)
+        (source of truth)    (provisioning)          (derived state)
+```
 
-## Phase 0 — Architecture Foundation
-
-> From: `docs/history.md` Phase 0, `docs/plan.md` Phase 2
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Docker Compose with 3 services (nginx, odoo, postgres) | ✅ Done | `docker-compose.yml` — odoo:19, postgres:16, nginx:alpine |
-| PostgreSQL in separate container | ✅ Done | `db` service on internal `backend` network |
-| Named volumes for persistence | ✅ Done | `odoo-web-data`, `odoo-db-data` |
-| Nginx reverse proxy (HTTP) | ✅ Done | `config/nginx.conf` — listens :80, proxies to `web:8069` |
-| Nginx HTTPS ready (stubs) | ✅ Done | Commented blocks for SSL and HTTP→HTTPS redirect in `nginx.conf` |
-| Odoo config with proxy mode | ✅ Done | `config/odoo.conf` — `proxy_mode = True`, 4 workers |
-| `.env` for secrets | ✅ Done | Gitignored, referenced in `docker-compose.yml` |
-| `.gitignore` | ✅ Done | Excludes `.env`, `backups/`, `__pycache__/`, etc. |
-| Two Docker networks (frontend/backend) | ✅ Done | `backend` is `internal: true`, `frontend` is public |
-
-## Phase 1 — Core Operations (Inventory & BoMs)
-
-> From: `docs/history.md` Phase 1, `docs/plan.md` Phase 3
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Product categories (11, hierarchical) | ✅ Done | `csv/categories.csv` — tree: Todos → Gastos/Insumos/Ventas |
-| Products (78+ ingredients/pizzas/drinks) | ✅ Done | `csv/products.csv` + `csv/producto_masa.csv` |
-| Custom UoM "Pinta" (~0.473L) | ✅ Done | `csv/unidades.csv`, created in import script |
-| Phantom/Kit BoMs for pizzas | ✅ Done | `csv/receta_pizzas_con_masa.csv` — 82 lines |
-| Two-level BoM chain (Bollo intermediate) | ✅ Done | `csv/receta_del_bollo.csv` → Bollo de Masa → pizzas |
-| Import script (categories, products, BoMs, POS) | ✅ Done | `addons/import_products.py` — 6-step pipeline via `nuclear-reset.sh` |
-| POS config name updated | ✅ Done | Sets name to "Pizzeria El Gordo" |
-| Restaurant floor plans & tables | ✅ Done | `addons/setup_floors.py` — 18 tables across 2 floors |
-| Spanish language | ✅ Done | `addons/set_language_spanish.py` |
-| Taxes replaced with Cubierto (10% table fee) | ✅ Done | Removed via `remove_taxes.py`; cubierto is per-product pricelist surcharge |
-| Channel pricing (table/pickup/delivery) | ✅ Done | 3 pricelists (Salon/Mostrador/Delivery) × 3 POS configs, per-product surcharges |
-| Delivery fee product ($1500) | ✅ Done | "Costo de Envío" service product in POS Delivery |
-| Initial stock loaded | ✅ Done | `addons/setup_test_inventory.py` |
-| Nuclear reset script (full rebuild) | ✅ Done | `scripts/nuclear-reset.sh` — 8-step automated rebuild from scratch |
-| Modules auto-installed (stock, mrp, point_of_sale, pos_restaurant) | ✅ Done | `nuclear-reset.sh` installs them; `pos_restaurant` added |
-| Cost prices on ingredients | ✅ Done | `products.csv` includes `standard_price` per product |
-| Sale prices on salable products | ✅ Done | `products.csv` includes `list_price`; `sale_ok` auto-set |
-| Products available in POS | ✅ Done | `available_in_pos` set when `list_price > 0` and not service |
-| Warehouse/location setup | ❌ Not done | No default warehouse or stock location config in import |
-| POS payment methods | ❌ Not done | No payment method configuration in import script |
-| POS fiscal position/taxes | ✅ Done | Cubierto tax (10%) + fiscal positions for Mostrador/Delivery |
-
-## Phase 2 — Employees & Roles
-
-> From: `docs/history.md` Phase 2, `docs/plan.md` Phase 4
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Manager user with full access | ❌ Not done | No user creation in code; default admin only |
-| Cashier user with POS-only access | ❌ Not done | No role/permission definitions |
-| Kitchen user with inventory-only access | ❌ Not done | No role/permission definitions |
-| 4-digit PIN login for POS | ❌ Not done | No POS user barcodes/PINs configured |
-| Employee tracking (basic) | ❌ Not done | No HR module or employee records |
-
-## Phase 3 — Hardware & Network
-
-> From: `docs/plan.md` Phase 1, `docs/network-setup.md`
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Hardware checklist documented | ✅ Done | `docs/network-setup.md` — Mini PC, tablets, printer, UPS |
-| Static IP assignments documented | ✅ Done | Server: 192.168.1.100, Printer: 192.168.1.200 |
-| Local DNS config documented | ✅ Done | Three options: router DNS, tablet hosts file, dnsmasq |
-| Ubuntu Server setup guide | ✅ Done | `docs/network-setup.md` — commands for Docker install |
-| Nginx `server_name` includes `elgordo.local` | ✅ Done | `config/nginx.conf` — `server_name elgordo.local 192.168.1.100` |
-| Thermal printer configuration | ❌ Not done | ESC/POS printer setup needed for tickets/receipts |
-| Kitchen Display System (KDS) | ❌ Not done | `pos_restaurant` module installed; KDS screen configuration needed |
-| Hardware actually procured | ❌ Not done | Physical hardware — outside code scope |
-
-## Phase 4 — Backup & Reliability
-
-> From: `docs/plan.md` Phase 5, `docs/history.md` Phase 6
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Backup script (pg_dump + 7-day retention) | ✅ Done | `scripts/backup.sh` |
-| Restore script (with confirmation prompt) | ✅ Done | `scripts/restore.sh` |
-| Odoo shell helper | ✅ Done | `scripts/odoo-shell.sh` |
-| Nuclear reset script | ✅ Done | `scripts/nuclear-reset.sh` — full rebuild in ~3 min |
-| Cron job for nightly backups | ⚠️ Partial | Documented in `docs/network-setup.md` but no crontab/cron Docker setup |
-| Offsite/cloud backup push | ❌ Not done | Script only saves locally; no S3/B2/rclone integration |
-| Odoo filestore backup | ❌ Not done | Only DB dump; `odoo-web-data` volume not backed up |
-| Update/migration strategy (clone → test → deploy) | ❌ Not done | Documented in plan but no scripts or procedure file |
-
-## Phase 5 — Security
-
-> From: `docs/history.md` Phases 0 & 5, `docs/plan.md` Phase 2
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Non-default admin password | ✅ Done | `config/odoo.conf` — `admin_passwd = 9vyf-dcwb-bmp6` |
-| Non-default DB credentials | ✅ Done | `.env` file with custom credentials |
-| Backend network isolated | ✅ Done | `backend` network is `internal: true` in compose |
-| Strong DB user (not `postgres` superuser) | ⚠️ Partial | Uses `odoo` user but `POSTGRES_DB=postgres` in `.env` reference |
-| Role-based access control | ❌ Not done | Same as Phase 2 roles — no user segregation |
-| Fail2Ban | ❌ Not done | Not mentioned in compose or config |
-| VPN / Tailscale | ❌ Not done | Documented as future phase only |
-| HTTPS / SSL | ❌ Not done | Stub config exists but no certs or enforcement |
-
-## Phase 6 — Customization & Reporting
-
-> From: `docs/history.md` Phase 3
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Custom modules in `/addons` | ⚠️ Partial | Only `import_pizzas.py` (data script, not an Odoo module) |
-| "Most sold pizza" report | ❌ Not done | Not implemented |
-| "Ingredient consumption per day" report | ❌ Not done | Not implemented |
-| Cost/margin per pizza dashboard | ❌ Not done | Odoo can compute this from cost prices, but no custom view |
-| Stock adjustment workflow automation | ❌ Not done | Manual Physical Inventory — no reminder or scheduling |
-
-## Phase 7 — E-commerce & Scaling
-
-> From: `docs/history.md` Phases 4 & 7
-
-| Item | Status | Notes |
-|------|--------|-------|
-| eCommerce module | ❌ Not done | Future phase; not installed or configured |
-| Multi-location support | ❌ Not done | Future phase |
-| Multiple POS terminals | ❌ Not done | Only one POS config defined |
-
-## Phase 8 — Printer & Kitchen Display
-
-> Hardware output: receipt printers and kitchen screens for order flow.
-
-| Item | Status | Notes |
-|------|--------|-------|
-| ESC/POS thermal printer driver setup | ❌ Not done | Need IoT box or direct USB/Network printer in Docker |
-| Receipt printer mapping in POS config | ❌ Not done | Configure receipt + order printer in Odoo POS settings |
-| Kitchen Display System (KDS) screen | ❌ Not done | POS Kitchen module for real-time order display on kitchen monitor |
-| Printer self-test / connectivity verification | ❌ Not done | Script or procedure to confirm printer is reachable |
-| Kitchen order ticket formatting | ❌ Not done | Customize ticket layout (pizza name, toppings, table number) |
-| Auto-print on order confirmation | ❌ Not done | Kitchen ticket prints automatically when POS order is sent |
-
-## Phase 9 — Emergency & Recovery Scripts
-
-> From: `scripts/scripts-ideas.md` — "restaurant battlefield recovery tooling"
-> Philosophy: **optimize for continuity of service**. Keep the kitchen alive, keep waiters selling, recover later.
-
-| Item | Status | Notes |
-|------|--------|-------|
-| `kitchen_panic.sh` — restart web, clear printer queues, reprint last 10 min orders | ❌ Not done | Highest value: kitchen tickets are critical during rush |
-| `ghostbuster.sh` — purge stale draft orders, release stuck tables | ❌ Not done | Targets `pos.order` draft state, older than X hours, no payments |
-| `tablet_resync.sh` — invalidate POS cache, rebuild session for cursed tablet | ❌ Not done | Single-tablet recovery without full reset |
-| `safe_mode.sh` — disable accounting/stock validation during rush hour | ❌ Not done | Turns Odoo into "just a cash register" for emergencies |
-| `time_machine_reset.sh` — export today's sales, nuclear reset, re-import revenue | ❌ Not done | Preserves Friday income while clearing corruption |
-| `service_kick.sh` — restart only web container (5s downtime) | ⚠️ Partial | `docker compose restart web` exists but no dedicated script |
-| `freeze_state.sh` — snapshot DB, logs, active orders before risky operations | ❌ Not done | Creates a "crash snapshot" before emergency surgery |
-| `force_stock.sh` — emergency inventory override for "out of stock" blocks | ❌ Not done | Bulk inventory adjustment, not raw `qty_available` override |
-| `blackout_mode.sh` — disable external integrations, local-only operation | ❌ Not done | For when internet/external services are down |
-
-## Phase 10 — Performance & Maintenance
-
-> From: `scripts/scripts-ideas.md` — operational compression and DB health
-> Stock move explosion from phantom BoMs (6+ moves per pizza × 300 pizzas/night = thousands of rows).
-
-| Item | Status | Notes |
-|------|--------|-------|
-| `compress_stock_moves.sh` — aggregate old ingredient consumptions to daily totals | ❌ Not done | Reduces DB bloat from phantom BoM explosions |
-| `archive_pos_orders.sh` — move old orders to archive/export | ❌ Not done | Export detail to JSON/CSV, keep totals in Odoo |
-| `vacuum_friday.sh` — PostgreSQL VACUUM ANALYZE before rush | ❌ Not done | Run before Friday opening to keep DB fast |
-| `purge_logs.sh` — delete debug/session logs | ❌ Not done | Reduces table bloat |
-| `daily_snapshot.sh` — save inventory totals only | ❌ Not done | Point-in-time inventory snapshot for reconciliation |
-| `ingredient_rollup.py` — merge ingredient consumptions by day via Odoo shell | ❌ Not done | Aggregates phantom BoM explosions into daily summaries |
-| Weekly physical inventory reminder/schedule | ❌ Not done | Documented in `docs/plan.md` but no automation |
-
-## Phase 11 — AI-Suggested Improvements
-
-> Additional ideas for operational excellence, not in original plans.
-
-| Item | Status | Notes |
-|------|--------|-------|
-| POS payment methods (cash + MercadoPago/QR) | ❌ Not done | Critical for real operations; cash default, add digital options |
-| Warehouse & stock location config in import script | ❌ Not done | Default warehouse assignment for proper inventory flow |
-| Paper fallback procedure (documented) | ❌ Not done | Pre-printed order pads for when server is completely down |
-| Multi-tier history retention (7d detail → daily → monthly) | ❌ Not done | Structured data lifecycle to balance traceability vs. performance |
-| UPS monitoring script (check power status, alert on battery) | ❌ Not done | `ups_status.sh` — detect power loss and trigger protective measures |
-| POS session auto-close at end of day | ❌ Not done | Prevents stale sessions accumulating overnight |
-| Sales dashboard (most sold pizza, daily revenue, cost/margin) | ❌ Not done | Builds on existing cost prices in products.csv |
-| Ingredient cost alert (threshold notification when cost changes) | ❌ Not done | Track supplier price changes to maintain margins |
+The database is **throwaway**. Nuclear reset destroys DB + volumes and rebuilds entirely from CSV files. Never edit Odoo directly via UI — everything must be reproducible from scratch.
 
 ---
 
-## Summary
+## 1. Infrastructure Layer (how it runs)
 
-| Phase | Total Items | ✅ Done | ⚠️ Partial | ❌ Not Done |
-|-------|-------------|---------|------------|-------------|
-| 0 — Architecture Foundation | 9 | 9 | 0 | 0 |
-| 1 — Core Operations | 20 | 18 | 0 | 2 |
-| 2 — Employees & Roles | 5 | 0 | 0 | 5 |
-| 3 — Hardware & Network | 8 | 4 | 0 | 4 |
-| 4 — Backup & Reliability | 8 | 4 | 1 | 3 |
-| 5 — Security | 8 | 3 | 1 | 4 |
-| 6 — Customization & Reporting | 5 | 0 | 1 | 4 |
-| 7 — E-commerce & Scaling | 3 | 0 | 0 | 3 |
-| 8 — Printer & Kitchen Display | 6 | 0 | 0 | 6 |
-| 9 — Emergency & Recovery Scripts | 9 | 0 | 1 | 8 |
-| 10 — Performance & Maintenance | 7 | 0 | 0 | 7 |
-| 11 — AI-Suggested Improvements | 8 | 0 | 0 | 8 |
-| **Total** | **96** | **38** | **4** | **54** |
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | 3 services: `nginx` (alpine), `web` (odoo:19.0 + cups-client), `db` (postgres:16) |
+| `Dockerfile` | Extends `odoo:19.0`, adds `cups-client` for thermal printing |
+| `config/odoo.conf` | `proxy_mode=True`, `workers=4`, admin password, addons paths |
+| `config/nginx.conf` | Reverse proxy `elgordo.local:80` → `web:8069`, HTTPS stubs commented |
+| `.env` | DB credentials + Mercado Pago tokens (gitignored) |
+| `custom_addons/` | Third-party modules mounted at `/mnt/custom-addons` |
 
-**Next priorities** (recommended order):
-1. POS payment methods & warehouse setup (finish Phase 1)
-2. Thermal printer + KDS setup (Phase 8) — kitchen can't work without tickets
-3. `kitchen_panic.sh` + `ghostbuster.sh` (Phase 9) — highest emergency value
-4. User roles: Manager, Cashier, Kitchen (Phase 2)
-5. Cron job for automated backups + offsite push (Phase 4)
-6. `compress_stock_moves.sh` + `vacuum_friday.sh` (Phase 10) — prevents DB bloat from phantom BoMs
-7. HTTPS with Let's Encrypt or self-signed certs (Phase 5)
+**Networks**: `frontend` (public, nginx+web), `backend` (internal, web+db).
+
+**Volumes**: `odoo-web-data` (filestore), `odoo-db-data` (PG data).
+
+---
+
+## 2. Data Layer (source of truth — CSV files)
+
+| CSV File | Lines | What |
+|----------|-------|------|
+| `csv/categories.csv` | 11 | Hierarchical product categories |
+| `csv/products.csv` | ~78 | All ingredients, pizzas, drinks, empanadas, delivery fee |
+| `csv/producto_masa.csv` | 1 | "Bollo de Masa" intermediate product |
+| `csv/pizzas.csv` | N | Pizza products (Mostrador variants) |
+| `csv/pizzas_salon.csv` | N | "[S] Salon" pizza variants (higher price) |
+| `csv/mitades.csv` | N | Half-&-half products |
+| `csv/mitades_salon.csv` | N | "[S] Salon" half-&-half variants |
+| `csv/empanadas.csv` | N | Empanada products |
+| `csv/empanadas_salon.csv` | N | "[S] Salon" empanada variants |
+| `csv/unidades.csv` | ~2 | Custom UoM: "Pinta" (~0.473L) |
+| `csv/receta_del_bollo.csv` | 3 | Bollo recipe: harina + agua + levadura |
+| `csv/receta_pizzas_con_masa.csv` | 82 | All pizza phantom BoMs (ingredients per pizza) |
+| `csv/employees.csv` | N | Employee definitions (for POS PIN login) |
+| `csv/precios_salon.csv` | N | Salon price adjustments/surcharges |
+| `images/layout*.png` | ~5 | Floor plan backgrounds |
+| `images/productos/` | ~N | Product images named by product ID |
+
+### CSV Dependency Graph (import order matters)
+
+```
+unidades.csv ──→ categories.csv ──→ products.csv + producto_masa.csv
+                                           │
+                                           ▼
+                              receta_del_bollo.csv
+                              receta_pizzas_con_masa.csv
+                                           │
+                                           ▼
+                              pizzas_salon.csv / mitades_salon.csv / empanadas_salon.csv
+                                           │
+                                           ▼
+                              precios_salon.csv (channel pricing)
+```
+
+### CSV Field Conventions
+
+- `id` column = external identifier (used as `default_code` in Odoo)
+- `categ_id/id` = references category by its CSV `id` column
+- `uom_name` = UoM name string (mapped via `import_lib.py:UOM_SEARCH`)
+- `standard_price` = cost price (ingredients only)
+- `list_price` = sale price (0 for non-saleable items)
+- `image_1920` = filename in `images/productos/` or full path
+- `detailed_type` = `product` (storable, inventory-tracked) or `consu` (consumable)
+- Salon variants prefixed with `[S]` in name
+
+---
+
+## 3. Provisions Layer (scripts that read CSV → Odoo)
+
+### Import Sequence (`scripts/import-data.sh` — 12 steps)
+
+| Step | Script | What it does |
+|------|--------|--------------|
+| 1 | `import_initial.py` | Installs modules (`stock`, `mrp`, `point_of_sale`, `pos_restaurant`) + custom UoMs |
+| 2 | `import_01_categories.py` | Creates product categories from `categories.csv` |
+| 3 | `import_02_ingredients.py` | Creates raw ingredients + Bollo de Masa + drinks + delivery fee product |
+| 4 | `import_03_products.py` | Creates saleable products (pizzas, mitades, empanadas) from CSVs |
+| 5 | `import_04_boms.py` | Creates phantom BoMs from recipe CSVs + Salon BoMs (copied from Mostrador) |
+| 6 | `import_05_pos.py` | Creates POS categories, assigns products, configures POS |
+| 7 | `setup_floors.py` | Restaurant floor plan with 18 tables across 2 floors |
+| 8 | `set_language_spanish.py` | Switches Odoo UI language to Spanish |
+| 9 | `remove_taxes.py` | Removes all taxes from products, creates Cubierto (10% table fee) |
+| 10 | `setup_test_inventory.py` | Sets initial stock quantities for all ingredients |
+| 11 | `setup_mercado_pago.py` | Configures Mercado Pago payment terminal |
+| 12 | `setup_kitchen_display.py` | Configures Kitchen Display System |
+| — | `validate_boms.py` (post-run) | Validates all phantom BoMs, checks for double-deduction bugs |
+| — | `setup_channel_pricing.py` (bonus) | Configures 3 pricelists: Salon / Mostrador / Delivery |
+
+### Operational Scripts (`scripts/`)
+
+| Script | Purpose |
+|--------|---------|
+| `nuclear-reset.sh` | Full rebuild: `docker compose down -v`, reinstall modules, reimport all data |
+| `clean-data.sh` | Wipe DB data only (preserves Docker volumes, runs import) |
+| `import-data.sh` | 12-step import pipeline (no Docker teardown) |
+| `backup.sh` | pg_dump with 7-day retention |
+| `restore.sh` | DB restore with confirmation prompt |
+| `odoo-shell.sh` | Helper to run ad-hoc odoo shell commands |
+| `setup-printer.sh` | CUPS printer setup (mounts cups.sock, tests print) |
+| `generate-test-order.sh` | Creates a test POS order + verifies kitchen ticket |
+| `reload-kitchen-addon.sh` | Rebuilds image + upgrades kitchen module + restarts web |
+| `run-tests.sh` | Test runner: unit/shell/e2e/kitchen/lint |
+
+### Diagnostic Scripts (`scripts/diag/`)
+
+| Script | Purpose |
+|--------|---------|
+| `check_bollo.py` | Verify Bollo de Masa product + BoM exist correctly |
+| `check_product_types.py` | Diagnostic: check product type/storable flags |
+| `diagnose_floors.py` | Check floor plan configuration |
+| `fix_floors.py` | Repair floor plan issues |
+| `fix_bollo_harina.py` | Fix Bollo Harina product reference |
+| `fix_product_types.py` | Fix product type flags |
+| `extract_coordinates.py` | Extract table coordinates from floor layout |
+| `upload_pizza_images.py` | Upload product images from `images/productos/` |
+
+---
+
+## 4. Testing
+
+### Test Types
+
+| Type | Command | What |
+|------|---------|------|
+| Odoo TransactionCase | `scripts/run-tests.sh unit` | Unit tests via `--test-tags` |
+| Odoo Shell integration | `scripts/run-tests.sh shell` | Runs `tests/test_*.py` via odoo shell |
+| Playwright E2E | `scripts/run-tests.sh e2e` | Browser tests from `e2e/specs/` |
+| Kitchen-specific | `scripts/run-tests.sh kitchen` | Kitchen ticket workflow tests |
+
+### Test Files
+
+| File | What it tests |
+|------|---------------|
+| `tests/test_kitchen_workflow.py` | Kitchen ticket creation, formatting, printing |
+| `tests/test_kitchen_failure_modes.py` | Error handling: no printer, missing product, etc. |
+| `tests/test_pos_inventory_deduction.py` | Phantom BoM stock deduction via POS order |
+| `tests/test_phantom_odoo19.py` | BoM chain validation + Odoo 19 is_storable check |
+| `e2e/specs/` | KDS model tests, login smoke test, advance KDS tests |
+
+---
+
+## 5. Critical Concepts for Correctness
+
+### Phantom BoM Chain (THE critical feature)
+
+```
+Flour + Water + Yeast ──→ Bollo de Masa (phantom, no produce step)
+                                │
+                                ▼
+Bollo + Cheese + Sauce + Toppings ──→ Pizza (phantom, no produce step)
+```
+
+- Both levels use `type='phantom'` — Odoo auto-deducts ingredients on POS sale
+- **No manufacturing orders needed** — essential for fast restaurant workflow
+- **Two-level** = change dough recipe once, all pizzas update
+- Each pizza sale = 6+ stock moves (flour, water, yeast, sauce, cheese, topping × qty)
+
+### Salon [S] Products Pattern
+
+Every Mostrador (counter) product has a corresponding `[S] Salon` variant:
+- **Mostrador**: base price, takeaway/pickup channel
+- **[S] Salon**: higher price (dine-in surcharge), dining room channel
+- BoMs: [S] Salon variants **copy** the Mostrador recipe (same ingredients, NOT linked via product — avoids double deduction)
+- POS categories: `[S]` variants shown in separate `[S] Pizzas`, `[S] Mitades`, `[S] Empanadas` categories
+
+### Channel Pricing (3 Pricelists)
+
+| Pricelist | What | Applied to |
+|-----------|------|------------|
+| Salon | Dine-in prices (Mostrador + surcharge) | [S] Salon products |
+| Mostrador | Base counter prices | Non-[S] products |
+| Delivery | Takeaway prices | Non-[S] products + $1500 delivery fee |
+
+### Product Type Rules (Odoo 19)
+
+- `detailed_type='product'` → `is_storable=True` → phantom BoM works ✓
+- `detailed_type='consu'` → `is_storable=False` → phantom BoM will NOT deduct stock
+- In Odoo 19, `is_storable` is computed (not directly settable). Set via `type` field or `is_storable` on creation.
+- Ingredients MUST be storable for phantom BoM deduction to work
+- Service products (delivery fee) have their own handling
+
+---
+
+## 6. Hard Rules (For LLM Contributors)
+
+### ✅ Allowed
+- Edit CSV files (source of truth)
+- Create/edit `addons/*.py` provisioning scripts (use `import_lib.py` helpers)
+- Create new files in `custom_addons/` (Odoo modules with `__manifest__.py`)
+- Use `env['model'].search/create/write` via odoo shell
+- Use `import_lib.py` helpers: `csv_rows()`, `get_uom_id()`, `get_categ_id()`, `create_product_from_csv()`, `load_product_index()`, `load_category_index()`
+- Run `nuclear-reset.sh --skip-docker` to reimport after CSV changes
+
+### ❌ Forbidden
+- **No raw SQL** — never use `env.cr.execute()` or direct SQL
+- **No UI configuration** — every change must be scripted
+- **No modifying Odoo core** — never change files inside Odoo modules; only use `addons/` or `custom_addons/`
+- **No direct DB editing** — never use psql/pgadmin to change data
+- **No hardcoded IDs** — always search by name or use `default_code`
+- **No skipping the pipeline** — if CSV changes, re-run import. Don't patch DB directly.
+
+### General Principles
+
+1. **Reproducibility**: Every change must survive `nuclear-reset.sh`
+2. **Idempotency**: Import scripts check `search()` before `create()`
+3. **No silent failures**: Log warnings for missing products/uoms/categories
+4. **Test after provision**: Run `validate_boms.py` to verify BoM integrity
+5. **Commit CSV + script, not DB state**: The repo contains the recipe, not the cooked meal
+
+---
+
+## 7. File Inventory (all non-obvious files)
+
+| File | Notes |
+|------|-------|
+| `addons/import_lib.py` | Shared library: CSV reader, UoM/category lookup, image encoder, product creator |
+| `addons/import_products.py.bak` | Old monolithic import (replaced by step-by-step pipeline) |
+| `addons/diag_salon_double.py` | Diagnostic for double-deduction bugs in Salon BoMs |
+| `addons/clean_data.py` | DB cleanup (called by `clean-data.sh`) |
+| `csv/precios_salon.csv` | Price overrides for Salon channel |
+| `csv/summary.md` | Auto-generated product counts |
+| `csv/explanation.md` | CSV relationship diagram |
+| `csv/employees.csv` | Employee records (PIN, roles) |
+| `images/layout.xcf` | GIMP source file for floor plan |
+| `scripts/scripts-ideas.md` | Brain-dump of emergency/recovery script ideas |
+| `e2e/test-results/` | Test artifacts (gitignored) |
+| `.env` | Created from `.env.example` pattern (gitignored, not in repo) |
+
+---
+
+## 8. Common Tasks (Quick Reference)
+
+### Add a new pizza product
+
+1. Add entry to `csv/products.csv` and `csv/pizzas.csv`
+2. Add recipe to `csv/receta_pizzas_con_masa.csv`
+3. Add image to `images/productos/PIZZAXX.png` if desired
+4. Run `scripts/import-data.sh` (or `nuclear-reset.sh --skip-docker`)
+
+### Change ingredient cost
+
+1. Edit `standard_price` column in `csv/products.csv`
+2. Re-run step 3 only: `docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_02_ingredients.py`
+3. Or full reimport
+
+### Modify dough recipe (affects all pizzas)
+
+1. Edit `csv/receta_del_bollo.csv` (flour/water/yeast quantities)
+2. Run step 5 of import: `docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/import_04_boms.py`
+3. Validate: `docker compose run --rm web odoo shell -c /etc/odoo/odoo.conf -d elgordo < addons/validate_boms.py`
+
+### Debug a failed import
+
+1. Check the Python traceback in the odoo shell output
+2. Common issues: missing parent category, UoM not found, CSV column name mismatch
+3. Run `nuclear-reset.sh --skip-docker` for a clean retry
+
+### Run tests
+
+```bash
+scripts/run-tests.sh lint     # Python lint on custom_addons/
+scripts/run-tests.sh unit     # Odoo TransactionCase tests
+scripts/run-tests.sh shell    # Integration tests via odoo shell
+scripts/run-tests.sh e2e      # Playwright browser tests
+```
+
+---
+
+## 9. Implementation Status (phases tracking)
+
+### Phase 0 — Architecture Foundation ✅ (9/9 done)
+### Phase 1 — Core Operations ⚠️ (18/20 done)
+- ❌ Warehouse/stock location config in import
+- ❌ POS payment methods configuration (cash + MP)
+
+### Phase 2 — Employees & Roles ❌ (0/5)
+### Phase 3 — Hardware & Network ⚠️ (4/8)
+### Phase 4 — Backup & Reliability ⚠️ (4/8)
+### Phase 5 — Security ⚠️ (3/8)
+### Phase 6 — Customization & Reporting ❌ (0/5)
+### Phase 7 — E-commerce & Scaling ❌ (0/3)
+### Phase 8 — Printer & Kitchen Display ❌ (0/6)
+### Phase 9 — Emergency & Recovery Scripts ❌ (0/9)
+### Phase 10 — Performance & Maintenance ❌ (0/7)
+### Phase 11 — AI-Suggested Improvements ❌ (0/8)
+
+**Total**: 38/96 done, 4 partial, 54 not done.
+
+---
+
+## 10. Key Odoo Model References
+
+| Model | Used for |
+|-------|----------|
+| `product.template` | Products (ingredients, pizzas, drinks, etc.) |
+| `product.product` | Product variants (1:1 with template in this project) |
+| `product.category` | Product categories (hierarchical tree) |
+| `uom.uom` | Units of measure (kg, L, Units, Pinta) |
+| `mrp.bom` | Bill of Materials (all `type='phantom'`) |
+| `pos.category` | POS-specific categories (separate from product categories) |
+| `pos.config` | POS configuration (name, available categories, pricelist) |
+| `pos.session` | POS session management |
+| `pos.order` | POS orders (sale transactions) |
+| `pos.payment.method` | Payment methods (Cash, Mercado Pago) |
+| `restaurant.table` | Floor plan tables (18 tables, 2 floors) |
+| `restaurant.floor` | Floor definitions |
+| `product.pricelist` | Channel pricing: Salon/Mostrador/Delivery |
+| `product.pricelist.item` | Per-product price surcharges (Cubierto 10%) |
+| `pos.kitchen.ticket` | Kitchen display tickets (from custom module) |
+| `stock.location` | Warehouse / stock locations |
+| `stock.quant` | Current stock quantities |
+| `stock.move` | Stock moves (generated by phantom BoM explosion on sale) |
+| `res.partner` | Customers |
+| `res.users` | User accounts (not yet configured) |
+| `hr.employee` | Employee records (not yet configured) |

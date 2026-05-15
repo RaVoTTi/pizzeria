@@ -56,11 +56,11 @@
     border-bottom: 4px solid var(--tab-color, #fff);
 }
 
-.kds-tab[data-state="draft"] { --tab-color: #f59e0b; }
-.kds-tab[data-state="draft"].kds-tab--active { color: #f59e0b; }
+.kds-tab[data-state="pending"] { --tab-color: #f59e0b; }
+.kds-tab[data-state="pending"].kds-tab--active { color: #f59e0b; }
 
-.kds-tab[data-state="waiting"] { --tab-color: #ef4444; }
-.kds-tab[data-state="waiting"].kds-tab--active { color: #ef4444; }
+.kds-tab[data-state="cooking"] { --tab-color: #ef4444; }
+.kds-tab[data-state="cooking"].kds-tab--active { color: #ef4444; }
 
 .kds-tab[data-state="ready"] { --tab-color: #22c55e; }
 .kds-tab[data-state="ready"].kds-tab--active { color: #22c55e; }
@@ -81,8 +81,8 @@
     line-height: 1;
 }
 
-.kds-tab[data-state="draft"] .kds-count-badge { background-color: #f59e0b; color: #000; }
-.kds-tab[data-state="waiting"] .kds-count-badge { background-color: #ef4444; color: #fff; }
+.kds-tab[data-state="pending"] .kds-count-badge { background-color: #f59e0b; color: #000; }
+.kds-tab[data-state="cooking"] .kds-count-badge { background-color: #ef4444; color: #fff; }
 .kds-tab[data-state="ready"] .kds-count-badge { background-color: #22c55e; color: #000; }
 .kds-tab[data-state="delivered"] .kds-count-badge { background-color: #3b82f6; color: #fff; }
 
@@ -120,8 +120,8 @@
     transform: scale(0.98);
 }
 
-.kds-card[data-state="draft"]:hover { border-color: #f59e0b; }
-.kds-card[data-state="waiting"]:hover { border-color: #ef4444; }
+.kds-card[data-state="pending"]:hover { border-color: #f59e0b; }
+.kds-card[data-state="cooking"]:hover { border-color: #ef4444; }
 .kds-card[data-state="ready"]:hover { border-color: #22c55e; }
 .kds-card[data-state="delivered"]:hover { border-color: #3b82f6; }
 
@@ -132,7 +132,7 @@
     100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
 }
 
-.kds-card[data-state="draft"].kds-card--new {
+.kds-card[data-state="pending"].kds-card--new {
     animation: kdsPulse 2s infinite;
 }
 
@@ -145,8 +145,8 @@
     gap: 10px;
 }
 
-.kds-card[data-state="draft"] .kds-card-header     { background-color: #f59e0b; color: #000; }
-.kds-card[data-state="waiting"] .kds-card-header   { background-color: #ef4444; color: #fff; }
+.kds-card[data-state="pending"] .kds-card-header   { background-color: #f59e0b; color: #000; }
+.kds-card[data-state="cooking"] .kds-card-header   { background-color: #ef4444; color: #fff; }
 .kds-card[data-state="ready"] .kds-card-header     { background-color: #22c55e; color: #000; }
 .kds-card[data-state="delivered"] .kds-card-header { background-color: #3b82f6; color: #fff; }
 
@@ -167,6 +167,13 @@
 .order-customer {
     font-size: 0.9rem;
     opacity: 0.8;
+}
+
+.order-badges {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .kds-badge-mesa {
@@ -195,6 +202,26 @@
     white-space: nowrap;
 }
 
+/* ---------- ticket type badges ---------- */
+.kds-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.kds-badge-new { background-color: #22c55e; color: #000; }
+.kds-badge-addition { background-color: #3b82f6; color: #fff; }
+.kds-badge-cancellation { background-color: #ef4444; color: #fff; }
+
+.kds-badge-paid { background-color: #22c55e; color: #000; }
+.kds-badge-not-paid { background-color: #f59e0b; color: #000; }
+
 /* ---------- elapsed time ---------- */
 .kds-elapsed {
     display: flex;
@@ -221,8 +248,8 @@
 .kds-elapsed--amber  { color: #d97706; }
 .kds-elapsed--red    { color: #dc2626; }
 
-.kds-card[data-state="draft"] .kds-elapsed     { color: #000; }
-.kds-card[data-state="waiting"] .kds-elapsed   { color: #fff; }
+.kds-card[data-state="pending"] .kds-elapsed   { color: #000; }
+.kds-card[data-state="cooking"] .kds-elapsed   { color: #fff; }
 .kds-card[data-state="ready"] .kds-elapsed     { color: #000; }
 .kds-card[data-state="delivered"] .kds-elapsed { color: #fff; }
 
@@ -246,6 +273,12 @@
     padding: 6px 10px;
     background-color: #2a2a3e;
     border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s, background-color 0.15s;
+}
+
+.kds-line:hover {
+    background-color: #333350;
 }
 
 .kds-line .qty {
@@ -262,21 +295,45 @@
     text-decoration: line-through;
 }
 
-.kds-line-btn {
-    background: #22c55e;
-    color: #000;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 10px;
-    font-size: 0.8rem;
+.kds-line--cancelled {
+    opacity: 0.25;
+    text-decoration: line-through;
+    background-color: #3a1a1a;
+}
+
+/* ---------- line status badge ---------- */
+.kds-line-status {
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
     white-space: nowrap;
 }
 
-.kds-line-btn:hover {
-    filter: brightness(1.2);
+.kds-line-status--pending { background-color: #f59e0b; color: #000; }
+.kds-line-status--cooking { background-color: #ef4444; color: #fff; }
+.kds-line-status--ready { background-color: #22c55e; color: #000; }
+.kds-line-status--cancelled { background-color: #6b7280; color: #fff; }
+
+/* ---------- line cancel button ---------- */
+.kds-line-btn-cancel {
+    background: none;
+    border: 1px solid #555;
+    color: #ef4444;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.kds-line-btn-cancel:hover {
+    background-color: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
 }
 
 /* ---------- notes ---------- */

@@ -1,0 +1,12 @@
+[lint]
+# Ignore F401 (unused imports) in __init__.py files - Odoo requires these to load modules
+# Ignore E741 (ambiguous variable name) - common in Odoo code
+ignore = ["F401", "E741", "F821", "F541"]
+
+[lint.per-file-ignores]
+# Allow unused imports in __init__.py files (Odoo module loading pattern)
+"__init__.py" = ["F401"]
+# Allow unused imports in tests
+"tests/*" = ["F401", "F821"]
+# addons/ are Odoo shell scripts - env is provided by the shell context
+"addons/*" = ["F821"]

@@ -25,7 +25,6 @@ def find_base_uom(env, name_hints):
 
 def create_uom_from_csv(env, row):
     """Create a single Unit of Measure from CSV row data for Odoo 19."""
-    external_id = row['id']
     name = row['name']
 
     # Check if UoM already exists by name

@@ -5,18 +5,18 @@
             <div class="body_wrapper">
                 <div class="kds-tabs">
                     <button class="kds-tab"
-                            t-att-class="state.stages === 'draft' ? 'kds-tab kds-tab--active' : 'kds-tab'"
-                            t-att-data-state="'draft'"
-                            t-on-click="() => this.draftStage()">
+                            t-att-class="state.stages === 'pending' ? 'kds-tab kds-tab--active' : 'kds-tab'"
+                            t-att-data-state="'pending'"
+                            t-on-click="() => this.pendingStage()">
                         Pendiente
-                        <span class="kds-count-badge"><t t-esc="state.draft_count"/></span>
+                        <span class="kds-count-badge"><t t-esc="state.pending_count"/></span>
                     </button>
                     <button class="kds-tab"
-                            t-att-class="state.stages === 'waiting' ? 'kds-tab kds-tab--active' : 'kds-tab'"
-                            t-att-data-state="'waiting'"
-                            t-on-click="() => this.waitingStage()">
+                            t-att-class="state.stages === 'cooking' ? 'kds-tab kds-tab--active' : 'kds-tab'"
+                            t-att-data-state="'cooking'"
+                            t-on-click="() => this.cookingStage()">
                         En Horno
-                        <span class="kds-count-badge"><t t-esc="state.waiting_count"/></span>
+                        <span class="kds-count-badge"><t t-esc="state.cooking_count"/></span>
                     </button>
                     <button class="kds-tab"
                             t-att-class="state.stages === 'ready' ? 'kds-tab kds-tab--active' : 'kds-tab'"
@@ -34,62 +34,62 @@
                     </button>
                 </div>
                 <div class="kds-grid">
-                    <t t-call="KitchenOrder"/>
-                </div>
-            </div>
-        </div>
-    </t>
+                    <t t-foreach="state.tickets" t-as="ticket" t-key="ticket.id">
+                        <t t-if="ticket.state == state.stages">
+                            <t t-set="elapsedColor" t-value="this.getElapsedColor(ticket)"/>
+                            <t t-set="elapsedMins" t-value="this.getElapsedMinutes(ticket)"/>
+                            <t t-set="ticketType" t-value="this.getTicketType(ticket)"/>
+                            <t t-set="partner" t-value="this.getPartnerName(ticket)"/>
+                            <t t-set="typeLabel" t-value="this.getTicketTypeLabel(ticket.ticket_type)"/>
 
-    <t t-name="KitchenOrder">
-        <t t-foreach="state.order_details" t-as="order" t-key="order.id">
-            <t t-if="state.shop_id == order.config_id[0]">
-                <t t-if="order.order_status == state.stages">
-                    <t t-set="elapsedColor" t-value="this.getElapsedColor(order)"/>
-                    <t t-set="elapsedMins" t-value="this.getElapsedMinutes(order)"/>
-                    <t t-set="orderType" t-value="this.getOrderType(order)"/>
-                    <t t-set="customerName" t-value="this.getCustomerName(order)"/>
+                            <div class="kds-card"
+                                 t-att-data-state="ticket.state"
+                                 t-on-click="(e) => this.onCardClick(e, ticket)">
 
-                    <div class="kds-card"
-                         t-att-data-state="order.order_status"
-                         t-on-click="(e) => this.onCardClick(e, order)">
+                                <div class="kds-card-header">
+                                    <div class="order-info">
+                                        <div class="order-badges">
+                                            <t t-if="ticketType === 'mesa'">
+                                                <span class="kds-badge-mesa">MESA <t t-esc="ticket.table_name"/></span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="kds-badge-delivery">DELIVERY</span>
+                                            </t>
+                                            <span t-att-class="ticket.ticket_type === 'addition' ? 'kds-badge kds-badge-addition' : ticket.ticket_type === 'cancellation' ? 'kds-badge kds-badge-cancellation' : 'kds-badge kds-badge-new'">
+                                                <t t-esc="typeLabel"/>
+                                            </span>
+                                            <span t-att-class="ticket.payment_status === 'paid' ? 'kds-badge kds-badge-paid' : 'kds-badge kds-badge-not-paid'">
+                                                <t t-esc="ticket.payment_status === 'paid' ? 'PAGADO' : 'NO PAGADO'"/>
+                                            </span>
+                                        </div>
+                                        <span class="order-name">
+                                            <t t-esc="ticket.pos_reference || ticket.order_name"/>
+                                        </span>
+                                        <t t-if="partner">
+                                            <span class="order-customer"><t t-esc="partner"/></span>
+                                        </t>
+                                    </div>
+                                    <div class="kds-elapsed"
+                                         t-att-class="elapsedColor === 'red' ? 'kds-elapsed kds-elapsed--red' : elapsedColor === 'amber' ? 'kds-elapsed kds-elapsed--amber' : 'kds-elapsed kds-elapsed--green'">
+                                        <span class="kds-elapsed-num"><t t-esc="elapsedMins"/></span>
+                                        <span class="kds-elapsed-unit">min</span>
+                                    </div>
+                                </div>
 
-                        <div class="kds-card-header">
-                            <div class="order-info">
-                                <t t-if="orderType === 'mesa'">
-                                    <span class="kds-badge-mesa">MESA <t t-esc="order.table_id[1]"/></span>
-                                </t>
-                                <t t-else="">
-                                    <span class="kds-badge-delivery">DELIVERY</span>
-                                </t>
-                                <span class="order-name">
-                                    <t t-esc="order.pos_reference || order.name"/>
-                                </span>
-                                <t t-if="customerName">
-                                    <span class="order-customer">
-                                        <t t-esc="customerName"/>
-                                    </span>
-                                </t>
-                            </div>
-                            <div class="kds-elapsed"
-                                 t-att-class="elapsedColor === 'red' ? 'kds-elapsed kds-elapsed--red' : elapsedColor === 'amber' ? 'kds-elapsed kds-elapsed--amber' : 'kds-elapsed kds-elapsed--green'">
-                                <span class="kds-elapsed-num"><t t-esc="elapsedMins"/></span>
-                                <span class="kds-elapsed-unit">min</span>
-                            </div>
-                        </div>
-
-                        <div class="kds-card-body">
-                            <t t-foreach="order.lines" t-as="lineId" t-key="lineId">
-                                <t t-foreach="state.lines" t-as="line" t-key="line.id">
-                                    <t t-if="lineId == line.id">
+                                <div class="kds-card-body">
+                                    <t t-foreach="ticket.lines" t-as="line" t-key="line.id">
                                         <div class="kds-line"
-                                             t-att-class="state.stages === 'waiting' and line.order_status === 'ready' ? 'kds-line kds-line--ready' : 'kds-line'">
-                                            <span class="qty"><t t-esc="line.qty"/>x</span>
+                                             t-att-class="line.state === 'ready' ? 'kds-line kds-line--ready' : line.state === 'cancelled' ? 'kds-line kds-line--cancelled' : 'kds-line'"
+                                             t-on-click.stop="(e) => this.onLineClick(e, line)">
+                                            <span class="qty"><t t-esc="line.qty_total"/>x</span>
                                             <span class="product-name"><t t-esc="line.full_product_name"/></span>
-                                            <t t-if="state.stages === 'waiting' and line.order_status !== 'ready'">
-                                                <button class="kds-line-btn"
-                                                        t-att-value="line.id"
-                                                        t-on-click.stop="(e) => this.toggleOrderLine(e)">
-                                                    Listo
+                                            <span t-att-class="line.state === 'pending' ? 'kds-line-status kds-line-status--pending' : line.state === 'cooking' ? 'kds-line-status kds-line-status--cooking' : line.state === 'ready' ? 'kds-line-status kds-line-status--ready' : 'kds-line-status kds-line-status--cancelled'">
+                                                <t t-esc="this.getLineStatusLabel(line.state)"/>
+                                            </span>
+                                            <t t-if="line.state !== 'cancelled'">
+                                                <button class="kds-line-btn-cancel"
+                                                        t-on-click.stop="(e) => this.cancelLine(e, line)">
+                                                    X
                                                 </button>
                                             </t>
                                         </div>
@@ -99,28 +99,28 @@
                                             </div>
                                         </t>
                                     </t>
-                                </t>
-                            </t>
 
-                            <t t-if="order.order_status !== 'delivered'">
-                                <div class="kds-next-action">
-                                    <t t-if="order.order_status === 'draft'">TAP — AL HORNO</t>
-                                    <t t-elif="order.order_status === 'waiting'">TAP — LISTO</t>
-                                    <t t-elif="order.order_status === 'ready'">TAP — ENTREGADO</t>
+                                    <t t-if="ticket.state !== 'delivered'">
+                                        <div class="kds-next-action">
+                                            <t t-if="ticket.state === 'pending'">TAP — AL HORNO</t>
+                                            <t t-elif="ticket.state === 'cooking'">TAP — LISTO</t>
+                                            <t t-elif="ticket.state === 'ready'">TAP — ENTREGADO</t>
+                                        </div>
+                                    </t>
                                 </div>
-                            </t>
-                        </div>
 
-                        <div class="kds-card-footer">
-                            <button class="kds-btn-cancel"
-                                    t-att-value="order.id"
-                                    t-on-click.stop="(e) => this.cancelOrder(e)">
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </t>
-            </t>
-        </t>
+                                <div class="kds-card-footer">
+                                    <button class="kds-btn-cancel"
+                                            t-att-value="ticket.id"
+                                            t-on-click.stop="(e) => this.cancelTicket(e)">
+                                        Cancelar Ticket
+                                    </button>
+                                </div>
+                            </div>
+                        </t>
+                    </t>
+                </div>
+            </div>
+        </div>
     </t>
 </template>

@@ -10,180 +10,225 @@ class KitchenScreenDashboard extends Component {
         this.orm = useService("orm");
         this.busService = useService("bus_service");
 
-        this.loadOrders = this.loadOrders.bind(this);
-        this.onPosOrderCreation = this.onPosOrderCreation.bind(this);
+        this.loadTickets = this.loadTickets.bind(this);
+        this.onTicketNotification = this.onTicketNotification.bind(this);
         this.onCardClick = this.onCardClick.bind(this);
-        this.cancelOrder = this.cancelOrder.bind(this);
-        this.toggleOrderLine = this.toggleOrderLine.bind(this);
+        this.cancelTicket = this.cancelTicket.bind(this);
+        this.onLineClick = this.onLineClick.bind(this);
+        this.cancelLine = this.cancelLine.bind(this);
         this.getElapsedMinutes = this.getElapsedMinutes.bind(this);
         this.getElapsedColor = this.getElapsedColor.bind(this);
-        this.getOrderType = this.getOrderType.bind(this);
-        this.getCustomerName = this.getCustomerName.bind(this);
+        this.getTicketType = this.getTicketType.bind(this);
+        this.getPartnerName = this.getPartnerName.bind(this);
+        this.getTicketTypeLabel = this.getTicketTypeLabel.bind(this);
+        this.getLineStatusLabel = this.getLineStatusLabel.bind(this);
+        this.getRemainingQty = this.getRemainingQty.bind(this);
 
-        this.draftStage = () => { this.state.stages = 'draft'; };
-        this.waitingStage = () => { this.state.stages = 'waiting'; };
+        this.pendingStage = () => { this.state.stages = 'pending'; };
+        this.cookingStage = () => { this.state.stages = 'cooking'; };
         this.readyStage = () => { this.state.stages = 'ready'; };
         this.deliveredStage = () => { this.state.stages = 'delivered'; };
+        
+        this.getPaymentStatusLabel = this.getPaymentStatusLabel.bind(this);
 
         this.currentShopId = this.getCurrentShopId();
         this.channel = `pos_order_created_${this.currentShopId}`;
 
         this.state = useState({
-            order_details: [],
+            tickets: [],
             shop_id: this.currentShopId,
-            stages: 'draft',
-            draft_count: 0,
-            waiting_count: 0,
+            stages: 'pending',
+            pending_count: 0,
+            cooking_count: 0,
             ready_count: 0,
             delivered_count: 0,
-            lines: [],
             isLoading: false,
         });
 
         onMounted(() => {
             this.busService.addChannel(this.channel);
-            this.busService.subscribe('notification', this.onPosOrderCreation);
-            this.loadOrders();
+            this.busService.subscribe('notification', this.onTicketNotification);
+            this.loadTickets();
 
             this.autoRefreshInterval = setInterval(() => {
-                this.loadOrders();
+                this.loadTickets();
             }, 30000);
 
             this.elapsedTimer = setInterval(() => {
-                this.state.order_details = [...this.state.order_details];
+                this.state.tickets = [...this.state.tickets];
             }, 60000);
         });
 
         onWillUnmount(() => {
             this.busService.deleteChannel(this.channel);
-            this.busService.unsubscribe('notification', this.onPosOrderCreation);
+            this.busService.unsubscribe('notification', this.onTicketNotification);
             clearInterval(this.autoRefreshInterval);
             clearInterval(this.elapsedTimer);
         });
     }
 
     getCurrentShopId() {
-        let shopId;
+        let id;
         if (this.props.action?.context?.default_shop_id) {
             sessionStorage.setItem('shop_id', this.props.action.context.default_shop_id);
-            shopId = this.props.action.context.default_shop_id;
+            id = this.props.action.context.default_shop_id;
         } else {
-            shopId = sessionStorage.getItem('shop_id');
+            id = sessionStorage.getItem('shop_id');
         }
-        return parseInt(shopId, 10) || 0;
+        return parseInt(id, 10) || 0;
     }
 
-    getElapsedMinutes(order) {
-        if (!order.date_order) return 0;
-        const orderDate = typeof order.date_order === 'string'
-            ? new Date(order.date_order.replace(' ', 'T'))
-            : new Date(order.date_order);
-        return Math.max(0, Math.floor((Date.now() - orderDate) / 60000));
+    getElapsedMinutes(ticket) {
+        if (!ticket.date_order) return 0;
+        const d = typeof ticket.date_order === 'string'
+            ? new Date(ticket.date_order.replace(' ', 'T'))
+            : new Date(ticket.date_order);
+        return Math.max(0, Math.floor((Date.now() - d) / 60000));
     }
 
-    getElapsedColor(order) {
-        const m = this.getElapsedMinutes(order);
+    getElapsedColor(ticket) {
+        const m = this.getElapsedMinutes(ticket);
         if (m < 10) return 'green';
         if (m <= 20) return 'amber';
         return 'red';
     }
 
-    getOrderType(order) {
-        return (order.table_id && Array.isArray(order.table_id) && order.table_id[0]) ? 'mesa' : 'delivery';
+    getTicketType(ticket) {
+        return ticket.table_id ? 'mesa' : 'delivery';
     }
 
-    getCustomerName(order) {
-        if (order.partner_id && Array.isArray(order.partner_id) && order.partner_id[1]) {
-            return order.partner_id[1];
-        }
-        return '';
+    getPartnerName(ticket) {
+        return ticket.partner_name || '';
     }
 
-    /* ---------- unified card click — advances to next state ---------- */
-    onCardClick(ev, order) {
-        ev.stopPropagation();
-        this._advanceOrder(order);
+    getTicketTypeLabel(type) {
+        const labels = {
+            new: 'NUEVO',
+            addition: 'ADICION',
+            cancellation: 'CANCEL',
+            modification: 'MODIF',
+        };
+        return labels[type] || type;
     }
 
-    _advanceOrder(order) {
-        const id = order.id;
-
-        // optimistic instant move
-        const next = order.order_status === 'draft' ? 'waiting'
-            : order.order_status === 'waiting' ? 'ready'
-            : order.order_status === 'ready' ? 'delivered'
-            : null;
-
-        if (!next) return;
-
-        order.order_status = next;
-        this.state.order_details = [...this.state.order_details];
-
-        // fire backend
-        const method = next === 'waiting' ? 'order_progress_draft'
-            : next === 'ready' ? 'order_progress_change'
-            : 'order_progress_delivered';
-
-        this.orm.call("pos.order", method, [id]).catch(err => {
-            console.error("Error advancing order:", err);
-        });
-
-        setTimeout(() => this.loadOrders(), 1500);
+    getLineStatusLabel(state) {
+        const labels = {
+            pending: 'Pend',
+            cooking: 'Horno',
+            ready: 'Listo',
+            cancelled: 'X',
+        };
+        return labels[state] || state;
     }
 
-    async cancelOrder(e) {
-        const orderId = Number(e.target.value);
-        try {
-            await this.orm.call("pos.order", "order_progress_cancel", [orderId]);
-            const order = this.state.order_details.find(o => o.id === orderId);
-            if (order) order.order_status = 'cancel';
-            setTimeout(() => this.loadOrders(), 500);
-        } catch (error) {
-            console.error("Error cancelling order:", error);
-        }
+    getRemainingQty(line) {
+        return (line.qty_total || 0) - (line.qty_cancelled || 0);
     }
 
-    async toggleOrderLine(e) {
-        const lineId = Number(e.target.value);
-        try {
-            await this.orm.call("pos.order.line", "order_progress_change", [lineId]);
-            const line = this.state.lines.find(l => l.id === lineId);
-            if (line) line.order_status = line.order_status === 'ready' ? 'waiting' : 'ready';
-            setTimeout(() => this.loadOrders(), 500);
-        } catch (error) {
-            console.error("Error toggling order line:", error);
-        }
+    getPaymentStatusLabel(status) {
+        return status === 'paid' ? 'PAGADO' : 'NO PAGADO';
     }
 
-    async loadOrders() {
+    async loadTickets() {
         if (this.state.isLoading) return;
         try {
             this.state.isLoading = true;
-            const result = await this.orm.call("pos.order", "get_details", [this.currentShopId]);
-            this.state.order_details = result.orders || [];
-            this.state.lines = result.order_lines || [];
-
-            const all = this.state.order_details.filter(o => {
-                const cid = Array.isArray(o.config_id) ? o.config_id[0] : o.config_id;
-                return cid === this.currentShopId;
-            });
-
-            this.state.draft_count = all.filter(o => o.order_status === 'draft').length;
-            this.state.waiting_count = all.filter(o => o.order_status === 'waiting').length;
-            this.state.ready_count = all.filter(o => o.order_status === 'ready').length;
-            this.state.delivered_count = all.filter(o => o.order_status === 'delivered').length;
+            const result = await this.orm.call("pos.kitchen.ticket", "get_details", [this.currentShopId]);
+            this.state.tickets = result || [];
+            this.state.pending_count = this.state.tickets.filter(t => t.state === 'pending').length;
+            this.state.cooking_count = this.state.tickets.filter(t => t.state === 'cooking').length;
+            this.state.ready_count = this.state.tickets.filter(t => t.state === 'ready').length;
+            this.state.delivered_count = this.state.tickets.filter(t => t.state === 'delivered').length;
         } catch (error) {
-            console.error("Error loading orders:", error);
+            console.error("Error loading tickets:", error);
         } finally {
             this.state.isLoading = false;
         }
     }
 
-    onPosOrderCreation(message) {
+    onTicketNotification(message) {
         if (!message || message.config_id !== this.currentShopId) return;
-        const msgs = ['pos_order_created','pos_order_updated','pos_order_paid','pos_order_accepted',
-                      'pos_order_cancelled','pos_order_completed','pos_order_delivered','pos_order_line_updated'];
-        if (msgs.includes(message.message)) this.loadOrders();
+        const relevant = [
+            'pos_order_created', 'pos_order_updated', 'pos_order_paid',
+            'pos_order_accepted', 'pos_order_cancelled', 'pos_order_completed',
+            'pos_order_delivered', 'pos_order_line_updated',
+            'pos_order_line_cooking', 'pos_order_line_ready', 'pos_order_line_cancelled',
+        ];
+        if (relevant.includes(message.message)) this.loadTickets();
+    }
+
+    onCardClick(ev, ticket) {
+        ev.stopPropagation();
+        this._advanceTicket(ticket);
+    }
+
+    _advanceTicket(ticket) {
+        const next = ticket.state === 'pending' ? 'cooking'
+            : ticket.state === 'cooking' ? 'ready'
+            : ticket.state === 'ready' ? 'delivered'
+            : null;
+        if (!next) return;
+
+        ticket.state = next;
+        this.state.tickets = [...this.state.tickets];
+
+        const method = next === 'cooking' ? 'progress_to_cooking'
+            : next === 'ready' ? 'progress_to_ready'
+            : 'progress_to_delivered';
+
+        this.orm.call("pos.kitchen.ticket", method, [ticket.id]).catch(err => {
+            console.error("Error advancing ticket:", err);
+        });
+
+        setTimeout(() => this.loadTickets(), 1500);
+    }
+
+    async cancelTicket(e) {
+        const ticketId = Number(e.target.value);
+        try {
+            await this.orm.call("pos.kitchen.ticket", "cancel_ticket", [ticketId]);
+            const ticket = this.state.tickets.find(t => t.id === ticketId);
+            if (ticket) ticket.state = 'cancelled';
+            setTimeout(() => this.loadTickets(), 500);
+        } catch (error) {
+            console.error("Error cancelling ticket:", error);
+        }
+    }
+
+    async onLineClick(ev, line) {
+        ev.stopPropagation();
+        const nextMap = {
+            pending: 'cooking',
+            cooking: 'ready',
+            ready: 'cancelled',
+            cancelled: 'pending',
+        };
+        const next = nextMap[line.state] || 'pending';
+
+        const methodMap = {
+            pending: 'action_cooking',
+            cooking: 'action_ready',
+            ready: 'action_cancel',
+            cancelled: 'action_cooking',
+        };
+        const method = methodMap[line.state] || 'action_cooking';
+
+        try {
+            await this.orm.call("pos.kitchen.ticket.line", method, [line.id]);
+            setTimeout(() => this.loadTickets(), 500);
+        } catch (error) {
+            console.error("Error updating line:", error);
+        }
+    }
+
+    async cancelLine(ev, line) {
+        ev.stopPropagation();
+        try {
+            await this.orm.call("pos.kitchen.ticket.line", "action_cancel", [line.id]);
+            setTimeout(() => this.loadTickets(), 500);
+        } catch (error) {
+            console.error("Error cancelling line:", error);
+        }
     }
 }
 

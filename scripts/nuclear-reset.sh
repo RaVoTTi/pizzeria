@@ -30,6 +30,10 @@ docker compose down -v --remove-orphans
 docker system prune -f
 
 echo ""
+echo "[0.5/3] Building custom Odoo image (includes CUPS client)..."
+docker compose build web
+
+echo ""
 echo "[1/3] Starting fresh + installing Odoo modules..."
 docker compose up -d
 echo "  Waiting for database to be ready (20s)..."

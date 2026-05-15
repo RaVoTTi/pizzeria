@@ -56,6 +56,12 @@ class KitchenScreen(models.Model):
         help='Change the cooking stage when completing the preparation time',
     )
 
+    printer_name = fields.Char(
+        string='Nombre de Impresora',
+        default='XP-80',
+        help='Nombre de la impresora CUPS para tickets de cocina (ej: XP-80)',
+    )
+
     def kitchen_screen(self):
         """Redirect to corresponding kitchen screen for the cook"""
         return {

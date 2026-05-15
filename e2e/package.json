@@ -1,0 +1,17 @@
+{
+  "name": "pizzeria-el-gordo-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright E2E tests for Pizzeria El Gordo POS & Kitchen Display",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:kds": "playwright test --grep @kds",
+    "test:pos": "playwright test --grep @pos",
+    "test:smoke": "playwright test --grep @smoke"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

@@ -7,6 +7,10 @@ echo "=========================================="
 cd "$(dirname "$0")/.."
 
 echo ""
+echo "[0/3] Building custom Odoo image (includes CUPS client)..."
+docker compose build web
+
+echo ""
 echo "[1/3] Upgrading module pos_kitchen_screen_odoo..."
 docker compose run --rm web odoo server -c /etc/odoo/odoo.conf -d elgordo \
   -u pos_kitchen_screen_odoo --stop-after-init

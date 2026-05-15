@@ -1,2 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_kitchen_screen_user,access.kitchen.screen,model_kitchen_screen,pos_kitchen_screen_odoo.kitchen_cook,1,1,1,1
+access_kitchen_ticket_cook,access.kitchen.ticket.cook,model_pos_kitchen_ticket,pos_kitchen_screen_odoo.kitchen_cook,1,1,1,0
+access_kitchen_ticket_line_cook,access.kitchen.ticket.line.cook,model_pos_kitchen_ticket_line,pos_kitchen_screen_odoo.kitchen_cook,1,1,1,0
+access_kitchen_ticket_user,access.kitchen.ticket.user,model_pos_kitchen_ticket,base.group_user,1,0,0,0
+access_kitchen_ticket_line_user,access.kitchen.ticket.line.user,model_pos_kitchen_ticket_line,base.group_user,1,0,0,0

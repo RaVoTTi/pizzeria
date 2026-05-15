@@ -70,6 +70,7 @@ else:
         vals = {
             'pos_config_id': pos_config.id,
             'pos_categ_ids': [(6, 0, kitchen_cats.ids)],
+            'printer_name': 'XP-80',
         }
         if existing:
             existing.write(vals)
