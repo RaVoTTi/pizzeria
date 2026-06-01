@@ -3,13 +3,31 @@ import logging
 import subprocess
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
+
+VALID_TRANSITIONS = {
+    "pending": {"cooking", "cancelled"},
+    "cooking": {"ready", "cancelled"},
+    "waiting": {"cooking", "cancelled"},
+    "ready": {"delivered", "cancelled"},
+    "delivered": set(),
+    "cancelled": set(),
+}
+
+LINE_TRANSITIONS = {
+    "pending": {"cooking"},
+    "cooking": {"ready", "cancelled"},
+    "waiting": {"cooking", "cancelled"},
+    "ready": {"cancelled"},
+    "cancelled": set(),
+}
 
 
 class PosKitchenTicket(models.Model):
     _name = "pos.kitchen.ticket"
-    _description = "Kitchen Ticket — append-only operational event"
+    _description = "Kitchen Ticket"
     _order = "create_date desc"
     _rec_name = "sequence"
 
@@ -33,7 +51,7 @@ class PosKitchenTicket(models.Model):
         readonly=True, default="Nuevo", copy=False)
     batch_letter = fields.Char(
         default="A", size=1,
-        help="Letra de lote: A para el original, B/C/D para adiciones o cancelaciones posteriores")
+        help="A=original, B/C/D=additions or cancellations")
 
     ticket_type = fields.Selection([
         ("new", "Nuevo"),
@@ -55,16 +73,17 @@ class PosKitchenTicket(models.Model):
         ("paid", "Pagado"),
         ("not_paid", "No Pagado"),
     ], default="not_paid", string="Estado de Pago",
-    help="Estado de pago al momento de crear el ticket (snapshot)")
+        help="Snapshot at ticket creation time")
 
     line_ids = fields.One2many(
         "pos.kitchen.ticket.line", "ticket_id", string="Lineas")
 
-    created_at = fields.Datetime(string="Creado", default=lambda self: fields.Datetime.now())
     started_at = fields.Datetime(string="Iniciado")
     ready_at = fields.Datetime(string="Listo a las")
     delivered_at = fields.Datetime(string="Entregado a las")
-    requested_time = fields.Datetime(string="Hora solicitada", help="Hora en que el cliente quiere el pedido")
+    requested_time = fields.Datetime(
+        string="Hora solicitada",
+        help="When the customer wants the order")
 
     def _notify_kitchen(self, message_type):
         self.ensure_one()
@@ -74,79 +93,84 @@ class PosKitchenTicket(models.Model):
             "ticket_id": self.id,
             "config_id": self.pos_config_id.id,
         }
-        channel = f"pos_order_created_{self.pos_config_id.id}"
+        channel = f"pos_kitchen.{self.pos_config_id.id}"
         self.env["bus.bus"]._sendone(channel, "notification", msg)
+
+    def _transition(self, new_state):
+        self.ensure_one()
+        if new_state not in VALID_TRANSITIONS.get(self.state, set()):
+            raise ValidationError(
+                f"Cannot move ticket from '{self.state}' to '{new_state}'")
+        self.state = new_state
+
+    def _sync_state_from_lines(self):
+        self.ensure_one()
+        if not self.line_ids:
+            return
+        line_states = set(self.line_ids.mapped("state"))
+        if line_states == {"ready"} or line_states == {"ready", "cancelled"}:
+            if self.state != "ready":
+                self.state = "ready"
+                self.ready_at = fields.Datetime.now()
+                self._notify_kitchen("pos_order_completed")
+        elif line_states == {"cancelled"}:
+            if self.state != "cancelled":
+                self.state = "cancelled"
+                self._notify_kitchen("pos_order_cancelled")
+        elif "cooking" in line_states:
+            if self.state == "pending":
+                self.state = "cooking"
+                self.started_at = self.started_at or fields.Datetime.now()
+                self._notify_kitchen("pos_order_accepted")
 
     def progress_to_cooking(self):
         self.ensure_one()
-        oven_capacity = self._get_oven_capacity()
-        cooking_tickets = self.search([
-            ("pos_config_id", "=", self.pos_config_id.id),
-            ("state", "=", "cooking"),
-        ])
-        total_pizzas = 0
-        for ticket in cooking_tickets:
-            for line in ticket.line_ids:
-                cat = (line.product_category or "").lower()
-                if "pizza" in cat or "empanada" in cat or "mitad" in cat:
-                    total_pizzas += line.qty_total
-        if total_pizzas >= oven_capacity:
-            self.state = "waiting"
-            self._notify_kitchen("pos_order_waiting")
-            return False
-        self.state = "cooking"
+        self._transition("cooking")
         self.started_at = fields.Datetime.now()
         self._notify_kitchen("pos_order_accepted")
         return True
 
-    def progress_to_waiting(self):
-        self.ensure_one()
-        self.state = "waiting"
-        self._notify_kitchen("pos_order_waiting")
-
-    def progress_from_waiting(self):
-        self.ensure_one()
-        oven_capacity = self._get_oven_capacity()
-        cooking_tickets = self.search([
-            ("pos_config_id", "=", self.pos_config_id.id),
-            ("state", "=", "cooking"),
-        ])
-        total_pizzas = 0
-        for ticket in cooking_tickets:
-            for line in ticket.line_ids:
-                cat = (line.product_category or "").lower()
-                if "pizza" in cat or "empanada" in cat or "mitad" in cat:
-                    total_pizzas += line.qty_total
-        if total_pizzas < oven_capacity:
-            self.state = "cooking"
-            self.started_at = fields.Datetime.now()
-            self._notify_kitchen("pos_order_accepted")
-            return True
-        return False
-
-    def _get_oven_capacity(self):
-        ks = self.env["kitchen.screen"].search([
-            ("pos_config_id", "=", self.pos_config_id.id),
-        ], limit=1)
-        return ks.oven_capacity if ks and ks.oven_capacity else 6
-
     def progress_to_ready(self):
         self.ensure_one()
-        self.state = "ready"
+        self._transition("ready")
         self.ready_at = fields.Datetime.now()
         self.line_ids.write({"state": "ready"})
         self._notify_kitchen("pos_order_completed")
 
     def progress_to_delivered(self):
         self.ensure_one()
-        self.state = "delivered"
+        self._transition("delivered")
         self.delivered_at = fields.Datetime.now()
         self._notify_kitchen("pos_order_delivered")
 
     def cancel_ticket(self):
         self.ensure_one()
-        self.state = "cancelled"
+        self._transition("cancelled")
+        self.line_ids.write({"state": "cancelled"})
         self._notify_kitchen("pos_order_cancelled")
+
+    def _get_oven_capacity(self):
+        ks = self.env["kitchen.screen"].search(
+            [("pos_config_id", "=", self.pos_config_id.id)], limit=1)
+        return ks.oven_capacity if ks and ks.oven_capacity else 6
+
+    def _count_oven_items(self):
+        result = self.env["pos.kitchen.ticket.line"].read_group(
+            [("ticket_id.pos_config_id", "=", self.pos_config_id.id),
+             ("ticket_id.state", "=", "cooking"),
+             ("product_category", "in", ["Pizza", "Empanada"])],
+            ["qty_total:sum"],
+            [],
+        )
+        return result[0]["qty_total"] if result and result[0]["qty_total"] else 0
+
+    def _own_oven_items(self):
+        count = 0
+        for line in self.line_ids:
+            cat = (line.product_category or "").lower()
+            if "pizza" in cat or "empanada" in cat or "mitad" in cat:
+                count += line.qty_total
+        return count
 
     def print_ticket(self, with_logo=True):
         self.ensure_one()
@@ -155,7 +179,7 @@ class PosKitchenTicket(models.Model):
             _logger.warning("No printer configured for kitchen screen")
             return False
         ticket_str = self._format_ticket_escpos()
-        data = ticket_str.encode("latin-1")
+        data = ticket_str.encode("utf-8", errors="replace")
         if with_logo:
             try:
                 from odoo.addons.pos_receipt_logo.models.receipt_logo import ReceiptLogo
@@ -173,8 +197,7 @@ class PosKitchenTicket(models.Model):
             if result.returncode != 0:
                 _logger.error(
                     "Kitchen print failed for ticket %s: %s",
-                    self.sequence, result.stderr.decode()
-                )
+                    self.sequence, result.stderr.decode(errors="replace"))
                 return False
             _logger.info("Kitchen ticket %s printed to %s", self.sequence, printer)
             return True
@@ -186,11 +209,14 @@ class PosKitchenTicket(models.Model):
             return False
 
     def _get_all_order_lines(self):
-        """Get all lines from the POS order, including drinks and other items."""
         pos_order = self.origin_pos_order_id
         if not pos_order:
-            return self.line_ids
-        
+            return [{"qty_total": l.qty_total,
+                     "full_product_name": l.full_product_name or "",
+                     "note": l.note or "",
+                     "product_category": l.product_category or "",
+                     "state": l.state}
+                    for l in self.line_ids]
         all_lines = []
         for order_line in pos_order.lines:
             all_lines.append({
@@ -204,22 +230,46 @@ class PosKitchenTicket(models.Model):
         return all_lines
 
     def _get_printer_name(self):
-        ks = self.env["kitchen.screen"].search([
-            ("pos_config_id", "=", self.pos_config_id.id),
-        ], limit=1)
+        ks = self.env["kitchen.screen"].search(
+            [("pos_config_id", "=", self.pos_config_id.id)], limit=1)
         return ks.printer_name if ks else None
+
+    @staticmethod
+    def _truncate_name(name, max_len=30):
+        if len(name) <= max_len:
+            return name
+        cut = name[:max_len]
+        last_space = cut.rfind(" ")
+        if last_space > max_len // 2:
+            return cut[:last_space]
+        return cut
+
+    def _get_product_category(self, product):
+        if product.pos_categ_ids:
+            cat_name = product.pos_categ_ids[0].name.lower()
+            if "pizza" in cat_name or "mitad" in cat_name:
+                return "Pizza"
+            if "empanada" in cat_name:
+                return "Empanada"
+            if "cerveza" in cat_name or "bebida" in cat_name or "delivery" in cat_name:
+                return "Bebida"
+        name = (product.name or "").lower()
+        if "pizza" in name or "mitad" in name or "panini" in name:
+            return "Pizza"
+        if "empanada" in name:
+            return "Empanada"
+        if "cerveza" in name or "bebida" in name:
+            return "Bebida"
+        return "Otro"
 
     def _format_ticket_escpos(self):
         ESC = "\x1b"
         REV_ON = ESC + "\x1dB\x01"
         REV_OFF = ESC + "\x1dB\x00"
         BOLD = ESC + "!\x08"
-        DBLH = ESC + "!\x10"
-        DBLW = ESC + "!\x20"
-        DBLHW = ESC + "!\x30"
         NORM = ESC + "!\x00"
-        UNDER = ESC + "\x2d\x01"
-        NOUNDR = ESC + "\x2d\x00"
+        DBLH = ESC + "!\x10"
+        DBLHW = ESC + "!\x30"
         DIVIDER = "-" * 42
 
         lines = []
@@ -234,22 +284,21 @@ class PosKitchenTicket(models.Model):
             remaining = 42 - len(header_parts) - 1
             if remaining > 3 and len(name) > remaining:
                 name = name[:remaining - 1] + "."
-            header_parts = f"{header_parts} {name}"
+            if remaining > 3:
+                header_parts = f"{header_parts} {name}"
 
-        lines.append(f"{BOLD}{header_parts}{NORM}")
+        lines.append(f"{DBLHW}{header_parts}{NORM}")
 
         type_parts = []
         if self.table_id:
-            type_parts.append(f"MESA {self.table_id.table_number}")
+            lines.append(f"{DBLHW}MESA {self.table_id.table_number}{NORM}")
         elif self.partner_id and self.partner_id.street:
             type_parts.append("DELIVERY")
+        else:
+            type_parts.append("RETIRA")
 
-        payment_label = "PAGADO" if self.payment_status == "paid" else ""
         if self.payment_status != "paid" and self.ticket_type != "cancellation":
-            payment_label = "NO PAGADO"
-
-        if payment_label:
-            type_parts.append(payment_label)
+            type_parts.append("NO PAGADO")
 
         if self.ticket_type != "new":
             type_labels = {
@@ -267,28 +316,21 @@ class PosKitchenTicket(models.Model):
             type_parts.append(self.create_date.strftime("%H:%M"))
 
         if type_parts:
-            lines.append(f"{BOLD}{' | '.join(type_parts)}{NORM}")
+            lines.append(f"{DBLH}{' | '.join(type_parts)}{NORM}")
 
         lines.append(DIVIDER)
 
         all_lines = self._get_all_order_lines()
-
         categories = {"Pizza": [], "Empanada": [], "Bebida": [], "Otro": []}
-        for line in all_lines:
-            if hasattr(line, 'product_category'):
-                cat = line.product_category or ""
-                qty = line.qty_total
-                name = line.full_product_name or ""
-                note = line.note or ""
-                state = line.state
-            else:
-                cat = line.get("product_category", "")
-                qty = line.get("qty_total", 1)
-                name = line.get("full_product_name", "")
-                note = line.get("note", "")
-                state = line.get("state", "pending")
 
-            entry = {"qty": qty, "name": name, "note": note, "state": state}
+        for line in all_lines:
+            cat = line.get("product_category", "")
+            entry = {
+                "qty": line.get("qty_total", 1),
+                "name": line.get("full_product_name", ""),
+                "note": line.get("note", ""),
+                "state": line.get("state", "pending"),
+            }
             if cat in categories:
                 categories[cat].append(entry)
             else:
@@ -308,23 +350,19 @@ class PosKitchenTicket(models.Model):
             lines.append(f"{BOLD}{cat_label}{NORM}")
             for item in items:
                 qty = int(item["qty"]) if item["qty"] == int(item["qty"]) else item["qty"]
-                name = item["name"][:30].upper()
+                name = self._truncate_name(item["name"].upper(), 21)
                 qty_str = f"{qty}x"
-                lines.append(f" {qty_str:>3} {name}")
+                lines.append(f"{DBLH} {qty_str:>3} {name}{NORM}")
                 if item["note"]:
                     lines.append(f"     {REV_ON} {item['note'][:28].upper()} {REV_OFF}")
             lines.append("")
 
-        order_notes = []
         order = self.origin_pos_order_id
         if order and order.general_customer_note:
-            order_notes.append(order.general_customer_note)
-        if order_notes:
             lines.append(DIVIDER)
             lines.append(f"{BOLD}OBSERVACIONES{NORM}")
-            for n in order_notes:
-                for part in n.split('\n')[:3]:
-                    lines.append(f"  {part[:38].upper()}")
+            for part in order.general_customer_note.split('\n')[:3]:
+                lines.append(f"  {part[:38].upper()}")
 
         if self.partner_id and self.partner_id.street:
             lines.append(DIVIDER)
@@ -338,47 +376,60 @@ class PosKitchenTicket(models.Model):
             lines.append(f"CREADO {created_time}")
 
         lines.append(ESC + "d" + "\x03")
+        lines.append(ESC + "i")
 
         return "\n".join(lines) + "\n"
 
     def action_line_cooking(self, line_id):
         line = self.env["pos.kitchen.ticket.line"].browse(line_id)
+        if line.state not in LINE_TRANSITIONS:
+            return
+        if "cooking" not in LINE_TRANSITIONS.get(line.state, set()):
+            return
         line.state = "cooking"
-        msg = {
-            "res_model": "pos.kitchen.ticket.line",
-            "message": "pos_order_line_cooking",
-            "line_id": line.id,
-            "ticket_id": self.id,
-            "config_id": self.pos_config_id.id,
-        }
-        channel = f"pos_order_created_{self.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        self._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.pos_config_id.id}", "notification", {
+                "res_model": "pos.kitchen.ticket.line",
+                "message": "pos_order_line_cooking",
+                "line_id": line.id,
+                "ticket_id": self.id,
+                "config_id": self.pos_config_id.id,
+            })
 
     def action_line_ready(self, line_id):
         line = self.env["pos.kitchen.ticket.line"].browse(line_id)
+        if line.state not in LINE_TRANSITIONS:
+            return
+        if "ready" not in LINE_TRANSITIONS.get(line.state, set()):
+            return
         line.state = "ready"
-        msg = {
-            "res_model": "pos.kitchen.ticket.line",
-            "message": "pos_order_line_ready",
-            "line_id": line.id,
-            "ticket_id": self.id,
-            "config_id": self.pos_config_id.id,
-        }
-        channel = f"pos_order_created_{self.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        self._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.pos_config_id.id}", "notification", {
+                "res_model": "pos.kitchen.ticket.line",
+                "message": "pos_order_line_ready",
+                "line_id": line.id,
+                "ticket_id": self.id,
+                "config_id": self.pos_config_id.id,
+            })
 
     def action_line_cancel(self, line_id):
         line = self.env["pos.kitchen.ticket.line"].browse(line_id)
+        if line.state not in LINE_TRANSITIONS:
+            return
+        if "cancelled" not in LINE_TRANSITIONS.get(line.state, set()):
+            return
         line.state = "cancelled"
-        msg = {
-            "res_model": "pos.kitchen.ticket.line",
-            "message": "pos_order_line_cancelled",
-            "line_id": line.id,
-            "ticket_id": self.id,
-            "config_id": self.pos_config_id.id,
-        }
-        channel = f"pos_order_created_{self.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        self._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.pos_config_id.id}", "notification", {
+                "res_model": "pos.kitchen.ticket.line",
+                "message": "pos_order_line_cancelled",
+                "line_id": line.id,
+                "ticket_id": self.id,
+                "config_id": self.pos_config_id.id,
+            })
 
     @api.model
     def get_details(self, shop_id):
@@ -406,7 +457,7 @@ class PosKitchenTicket(models.Model):
                     "product_category": l.product_category or "",
                 })
                 cat = l.product_category or ""
-                if cat and 'mitad' not in cat.lower():
+                if cat and "mitad" not in cat.lower():
                     all_categories.add(cat)
             result.append({
                 "id": ticket.id,
@@ -427,7 +478,7 @@ class PosKitchenTicket(models.Model):
                 "config_id": ticket.pos_config_id.id,
                 "session_id": ticket.session_id.id if ticket.session_id else False,
             })
-        
+
         stations = [{"id": cat, "name": cat} for cat in sorted(all_categories)]
         return {"tickets": result, "stations": stations}
 
@@ -458,9 +509,8 @@ class PosKitchenTicket(models.Model):
             return False
 
         sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
-        
         payment_status = "paid" if pos_order.state == "paid" else "not_paid"
-        
+
         ticket = self.create({
             "origin_pos_order_id": pos_order.id,
             "sequence": sequence,
@@ -483,14 +533,12 @@ class PosKitchenTicket(models.Model):
                     "state": "pending",
                     "product_category": product_category,
                 }))
-                order_line.qty_sent_to_kitchen = qty
         if line_vals:
             ticket.write({"line_ids": line_vals})
         ticket._notify_kitchen("pos_order_created")
         return ticket
 
     def get_full_order_lines(self, pos_order):
-        """Get all order lines including drinks, not just kitchen items."""
         line_vals = []
         for order_line in pos_order.lines:
             product_category = self._get_product_category(order_line.product_id)
@@ -506,7 +554,6 @@ class PosKitchenTicket(models.Model):
 
     @api.model
     def create_delta_tickets(self, pos_order):
-        """Detect additions and cancellations, create delta tickets."""
         kitchen_screen = self.env["kitchen.screen"].search([
             ("pos_config_id", "=", pos_order.config_id.id)
         ], limit=1)
@@ -536,9 +583,8 @@ class PosKitchenTicket(models.Model):
                 next_letter = self._next_batch_letter(used_letters)
                 used_letters.add(next_letter)
                 sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
-                
                 payment_status = "paid" if pos_order.state == "paid" else "not_paid"
-                
+
                 ticket = self.create({
                     "origin_pos_order_id": pos_order.id,
                     "sequence": sequence,
@@ -564,9 +610,8 @@ class PosKitchenTicket(models.Model):
                 next_letter = self._next_batch_letter(used_letters)
                 used_letters.add(next_letter)
                 sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
-                
                 payment_status = "paid" if pos_order.state == "paid" else "not_paid"
-                
+
                 ticket = self.create({
                     "origin_pos_order_id": pos_order.id,
                     "sequence": sequence,
@@ -597,16 +642,6 @@ class PosKitchenTicket(models.Model):
                 return letter
         return "Z"
 
-    def _get_product_category(self, product):
-        name = (product.name or "").lower()
-        if "pizza" in name or "mitad" in name or "panini" in name:
-            return "Pizza"
-        if "empanada" in name:
-            return "Empanada"
-        if "cerveza" in name or "bebida" in name:
-            return "Bebida"
-        return "Otro"
-
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -618,7 +653,7 @@ class PosKitchenTicket(models.Model):
 
 class PosKitchenTicketLine(models.Model):
     _name = "pos.kitchen.ticket.line"
-    _description = "Kitchen Ticket Line — operational unit"
+    _description = "Kitchen Ticket Line"
 
     ticket_id = fields.Many2one(
         "pos.kitchen.ticket", string="Ticket", required=True, ondelete="cascade")
@@ -631,7 +666,7 @@ class PosKitchenTicketLine(models.Model):
     note = fields.Char(string="Nota")
     product_category = fields.Char(
         string="Categoria de Producto",
-        help="Categoria para enrutamiento por estacion (Pizza, Empanada, etc.)")
+        help="Categoria para enrutamiento por estacion")
 
     qty_total = fields.Float(string="Cantidad total", default=1.0)
     qty_sent = fields.Float(string="Cantidad enviada", default=1.0)
@@ -648,42 +683,48 @@ class PosKitchenTicketLine(models.Model):
 
     def action_cooking(self):
         self.ensure_one()
+        if "cooking" not in LINE_TRANSITIONS.get(self.state, set()):
+            return
         self.state = "cooking"
-        msg = {
-            "res_model": self._name,
-            "message": "pos_order_line_cooking",
-            "line_id": self.id,
-            "ticket_id": self.ticket_id.id,
-            "config_id": self.ticket_id.pos_config_id.id,
-        }
-        channel = f"pos_order_created_{self.ticket_id.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        self.ticket_id._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
+                "res_model": self._name,
+                "message": "pos_order_line_cooking",
+                "line_id": self.id,
+                "ticket_id": self.ticket_id.id,
+                "config_id": self.ticket_id.pos_config_id.id,
+            })
 
     def action_ready(self):
         self.ensure_one()
+        if "ready" not in LINE_TRANSITIONS.get(self.state, set()):
+            return
         self.state = "ready"
-        msg = {
-            "res_model": self._name,
-            "message": "pos_order_line_ready",
-            "line_id": self.id,
-            "ticket_id": self.ticket_id.id,
-            "config_id": self.ticket_id.pos_config_id.id,
-        }
-        channel = f"pos_order_created_{self.ticket_id.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        self.ticket_id._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
+                "res_model": self._name,
+                "message": "pos_order_line_ready",
+                "line_id": self.id,
+                "ticket_id": self.ticket_id.id,
+                "config_id": self.ticket_id.pos_config_id.id,
+            })
 
     def action_cancel(self):
         self.ensure_one()
+        if "cancelled" not in LINE_TRANSITIONS.get(self.state, set()):
+            return
         self.state = "cancelled"
-        msg = {
-            "res_model": self._name,
-            "message": "pos_order_line_cancelled",
-            "line_id": self.id,
-            "ticket_id": self.ticket_id.id,
-            "config_id": self.ticket_id.pos_config_id.id,
-        }
-        channel = f"pos_order_created_{self.ticket_id.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        self.ticket_id._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
+                "res_model": self._name,
+                "message": "pos_order_line_cancelled",
+                "line_id": self.id,
+                "ticket_id": self.ticket_id.id,
+                "config_id": self.ticket_id.pos_config_id.id,
+            })
 
     def action_toggle(self):
         self.ensure_one()
@@ -693,14 +734,15 @@ class PosKitchenTicketLine(models.Model):
             "ready": "cancelled",
             "cancelled": "pending",
         }
-        self.state = cycle.get(self.state, "pending")
-        msg = {
-            "res_model": self._name,
-            "message": "pos_order_line_updated",
-            "line_id": self.id,
-            "ticket_id": self.ticket_id.id,
-            "config_id": self.ticket_id.pos_config_id.id,
-            "new_status": self.state,
-        }
-        channel = f"pos_order_created_{self.ticket_id.pos_config_id.id}"
-        self.env["bus.bus"]._sendone(channel, "notification", msg)
+        new_state = cycle.get(self.state, "pending")
+        self.state = new_state
+        self.ticket_id._sync_state_from_lines()
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
+                "res_model": self._name,
+                "message": "pos_order_line_updated",
+                "line_id": self.id,
+                "ticket_id": self.ticket_id.id,
+                "config_id": self.ticket_id.pos_config_id.id,
+                "new_status": new_state,
+            })
