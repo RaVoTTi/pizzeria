@@ -84,6 +84,21 @@
                             </div>
                         </div>
                         <div class="col-12 col-lg-6 o_setting_box"
+                             id="oven_capacity">
+                            <div class="o_setting_left_pane">
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="oven_capacity"/>
+                                <div class="text-muted">
+                                    <div>
+                                        <field name="oven_capacity"/>
+                                    </div>
+                                    Maximum number of pizzas that fit in the oven simultaneously.
+                                    Used for "Waiting for Space" queue management.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box"
                              id="kitchen_screen">
                             <div class="o_setting_left_pane">
                             </div>

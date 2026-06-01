@@ -1,7 +1,14 @@
 /** @odoo-module */
 import { registry } from "@web/core/registry";
+import { _t } from "@web/core/l10n/translation";
 const { Component, onMounted, onWillUnmount, useState } = owl;
 import { useService } from "@web/core/utils/hooks";
+
+const UNDO_WINDOW_MS = 5000;
+const GHOST_DURATION_MS = 10000;
+const OVEN_CAPACITY = 6;
+const SLA_WARNING_MIN = 30;
+const SLA_AMBER_MIN = 10;
 
 class KitchenScreenDashboard extends Component {
     setup() {
@@ -9,11 +16,13 @@ class KitchenScreenDashboard extends Component {
 
         this.orm = useService("orm");
         this.busService = useService("bus_service");
+        this.notification = useService("notification");
 
         this.loadTickets = this.loadTickets.bind(this);
         this.onTicketNotification = this.onTicketNotification.bind(this);
         this.onCardClick = this.onCardClick.bind(this);
         this.cancelTicket = this.cancelTicket.bind(this);
+        this.printTicket = this.printTicket.bind(this);
         this.onLineClick = this.onLineClick.bind(this);
         this.cancelLine = this.cancelLine.bind(this);
         this.getElapsedMinutes = this.getElapsedMinutes.bind(this);
@@ -23,19 +32,28 @@ class KitchenScreenDashboard extends Component {
         this.getTicketTypeLabel = this.getTicketTypeLabel.bind(this);
         this.getLineStatusLabel = this.getLineStatusLabel.bind(this);
         this.getRemainingQty = this.getRemainingQty.bind(this);
+        this.getPaymentStatusLabel = this.getPaymentStatusLabel.bind(this);
+        this.togglePrepHeader = this.togglePrepHeader.bind(this);
+        this.setStation = this.setStation.bind(this);
+        this.undoLastAction = this.undoLastAction.bind(this);
+        this.dismissAudioAlert = this.dismissAudioAlert.bind(this);
+        this.isMitadTicket = this.isMitadTicket.bind(this);
+        this.isMitadLine = this.isMitadLine.bind(this);
+        this.hasModifiers = this.hasModifiers.bind(this);
+        this.getModifierClass = this.getModifierClass.bind(this);
+        this.getCardClasses = this.getCardClasses.bind(this);
 
         this.pendingStage = () => { this.state.stages = 'pending'; };
         this.cookingStage = () => { this.state.stages = 'cooking'; };
         this.readyStage = () => { this.state.stages = 'ready'; };
         this.deliveredStage = () => { this.state.stages = 'delivered'; };
-        
-        this.getPaymentStatusLabel = this.getPaymentStatusLabel.bind(this);
 
         this.currentShopId = this.getCurrentShopId();
         this.channel = `pos_order_created_${this.currentShopId}`;
 
         this.state = useState({
             tickets: [],
+            sortedTickets: [],
             shop_id: this.currentShopId,
             stages: 'pending',
             pending_count: 0,
@@ -43,7 +61,27 @@ class KitchenScreenDashboard extends Component {
             ready_count: 0,
             delivered_count: 0,
             isLoading: false,
+            prepExpanded: false,
+            prepSummary: [],
+            stations: [],
+            activeStation: 'all',
+            showOvenQueue: true,
+            ovenCapacity: OVEN_CAPACITY,
+            ovenAvailable: OVEN_CAPACITY,
+            ovenWaiting: 0,
+            undoToast: {
+                visible: false,
+                message: '',
+                action: null,
+                progress: 100,
+                duration: UNDO_WINDOW_MS,
+            },
+            audioAlertActive: false,
+            ghostingTickets: new Set(),
         });
+
+        this._undoTimeout = null;
+        this._audioCtx = null;
 
         onMounted(() => {
             this.busService.addChannel(this.channel);
@@ -55,7 +93,7 @@ class KitchenScreenDashboard extends Component {
             }, 30000);
 
             this.elapsedTimer = setInterval(() => {
-                this.state.tickets = [...this.state.tickets];
+                this._recomputeDerived();
             }, 60000);
         });
 
@@ -64,6 +102,7 @@ class KitchenScreenDashboard extends Component {
             this.busService.unsubscribe('notification', this.onTicketNotification);
             clearInterval(this.autoRefreshInterval);
             clearInterval(this.elapsedTimer);
+            if (this._undoTimeout) clearTimeout(this._undoTimeout);
         });
     }
 
@@ -88,8 +127,8 @@ class KitchenScreenDashboard extends Component {
 
     getElapsedColor(ticket) {
         const m = this.getElapsedMinutes(ticket);
-        if (m < 10) return 'green';
-        if (m <= 20) return 'amber';
+        if (m < SLA_AMBER_MIN) return 'green';
+        if (m <= SLA_WARNING_MIN) return 'amber';
         return 'red';
     }
 
@@ -103,20 +142,21 @@ class KitchenScreenDashboard extends Component {
 
     getTicketTypeLabel(type) {
         const labels = {
-            new: 'NUEVO',
-            addition: 'ADICION',
-            cancellation: 'CANCEL',
-            modification: 'MODIF',
+            new: _t('NUEVO'),
+            addition: _t('ADICION'),
+            cancellation: _t('CANCEL'),
+            modification: _t('MODIF'),
         };
         return labels[type] || type;
     }
 
     getLineStatusLabel(state) {
         const labels = {
-            pending: 'Pend',
-            cooking: 'Horno',
-            ready: 'Listo',
-            cancelled: 'X',
+            pending: _t('Pend'),
+            cooking: _t('Horno'),
+            waiting: _t('Espera'),
+            ready: _t('Listo'),
+            cancelled: _t('X'),
         };
         return labels[state] || state;
     }
@@ -126,7 +166,111 @@ class KitchenScreenDashboard extends Component {
     }
 
     getPaymentStatusLabel(status) {
-        return status === 'paid' ? 'PAGADO' : 'NO PAGADO';
+        return status === 'paid' ? _t('PAGADO') : _t('NO PAGADO');
+    }
+
+    isMitadTicket(ticket) {
+        if (!ticket.lines) return false;
+        return ticket.lines.some(l => this.isMitadLine(l));
+    }
+
+    isMitadLine(line) {
+        const name = (line.full_product_name || '').toLowerCase();
+        return name.includes('mitad') || name.includes('1/2') || name.includes('half');
+    }
+
+    hasModifiers(ticket) {
+        if (!ticket.lines) return false;
+        return ticket.lines.some(l => l.note && l.note.trim());
+    }
+
+    getModifierClass(note) {
+        const n = (note || '').toLowerCase();
+        if (n.startsWith('sin ') || n.startsWith('no ') || n.startsWith('sin ')) return 'kds-modifier--sin';
+        if (n.startsWith('extra ') || n.startsWith('con extra') || n.startsWith('mas ')) return 'kds-modifier--extra';
+        return 'kds-modifier--note';
+    }
+
+    getCardClasses(ticket) {
+        const classes = [`kds-card`];
+        if (ticket.state) classes.push(`kds-card[data-state="${ticket.state}"]`);
+        if (ticket.isNew) classes.push('kds-card--new');
+        if (this.getElapsedMinutes(ticket) >= SLA_WARNING_MIN && ticket.state === 'pending') {
+            classes.push('kds-card--sla-warning');
+        }
+        if (ticket.syncError) classes.push('kds-card--sync-error');
+        if (this.state.ghostingTickets.has(ticket.id)) classes.push('kds-card--ghosting');
+        if (ticket.optimistic) classes.push('kds-card--optimistic');
+        return classes.join(' ');
+    }
+
+    togglePrepHeader() {
+        this.state.prepExpanded = !this.state.prepExpanded;
+    }
+
+    setStation(stationId) {
+        this.state.activeStation = stationId;
+        this._recomputeDerived();
+    }
+
+    dismissAudioAlert() {
+        this.state.audioAlertActive = false;
+    }
+
+    _playChime() {
+        try {
+            if (!this._audioCtx) {
+                this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const ctx = this._audioCtx;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+        }
+    }
+
+    _vibrate(pattern = [100, 50, 100]) {
+        if (navigator.vibrate) {
+            navigator.vibrate(pattern);
+        }
+    }
+
+    _showUndoToast(message, action) {
+        this.state.undoToast = {
+            visible: true,
+            message,
+            action,
+            progress: 100,
+            duration: UNDO_WINDOW_MS,
+        };
+
+        if (this._undoTimeout) clearTimeout(this._undoTimeout);
+        this._undoTimeout = setTimeout(() => {
+            this.state.undoToast.visible = false;
+            this.state.undoToast.action = null;
+        }, UNDO_WINDOW_MS);
+    }
+
+    async undoLastAction() {
+        if (!this.state.undoToast.action) return;
+        const action = this.state.undoToast.action;
+        try {
+            await action.undo();
+            this.notification.add(_t('Accion deshecha'), { type: 'info' });
+        } catch (e) {
+            this.notification.add(_t('Error al deshacer'), { type: 'danger' });
+        }
+        this.state.undoToast.visible = false;
+        this.state.undoToast.action = null;
+        if (this._undoTimeout) clearTimeout(this._undoTimeout);
     }
 
     async loadTickets() {
@@ -134,16 +278,98 @@ class KitchenScreenDashboard extends Component {
         try {
             this.state.isLoading = true;
             const result = await this.orm.call("pos.kitchen.ticket", "get_details", [this.currentShopId]);
-            this.state.tickets = result || [];
-            this.state.pending_count = this.state.tickets.filter(t => t.state === 'pending').length;
-            this.state.cooking_count = this.state.tickets.filter(t => t.state === 'cooking').length;
-            this.state.ready_count = this.state.tickets.filter(t => t.state === 'ready').length;
-            this.state.delivered_count = this.state.tickets.filter(t => t.state === 'delivered').length;
+            const tickets = result.tickets || [];
+            const stations = result.stations || [];
+            
+            const newIds = new Set(tickets.map(t => t.id));
+            const oldIds = new Set(this.state.tickets.map(t => t.id));
+            const hasNewTickets = [...newIds].some(id => !oldIds.has(id));
+
+            this.state.tickets = tickets;
+            this.state.stations = stations;
+            this._recomputeDerived();
+
+            if (hasNewTickets) {
+                this.state.audioAlertActive = true;
+                this._playChime();
+                this._vibrate([100, 50, 100]);
+            }
         } catch (error) {
             console.error("Error loading tickets:", error);
         } finally {
             this.state.isLoading = false;
         }
+    }
+
+    _recomputeDerived() {
+        const filtered = this._filterByStation(this.state.tickets);
+        this.state.sortedTickets = this._sortByAge(filtered);
+        this.state.pending_count = this.state.sortedTickets.filter(t => t.state === 'pending').length;
+        this.state.cooking_count = this.state.sortedTickets.filter(t => t.state === 'cooking').length;
+        this.state.ready_count = this.state.sortedTickets.filter(t => t.state === 'ready').length;
+        this.state.delivered_count = this.state.sortedTickets.filter(t => t.state === 'delivered').length;
+        this.state.prepSummary = this._computePrepSummary(this.state.sortedTickets);
+        this._computeOvenQueue();
+    }
+
+    _filterByStation(tickets) {
+        if (this.state.activeStation === 'all') return tickets;
+        return tickets.filter(t => {
+            if (!t.lines) return false;
+            return t.lines.some(l => {
+                const cat = l.product_category || '';
+                if (cat.toLowerCase().includes('mitad')) return false;
+                return cat === this.state.activeStation;
+            });
+        });
+    }
+
+    _sortByAge(tickets) {
+        return [...tickets].sort((a, b) => {
+            const da = a.date_order ? new Date(a.date_order.replace(' ', 'T')) : new Date(0);
+            const db = b.date_order ? new Date(b.date_order.replace(' ', 'T')) : new Date(0);
+            return da - db;
+        });
+    }
+
+    _computePrepSummary(tickets) {
+        const active = tickets.filter(t => !['delivered', 'cancelled'].includes(t.state));
+        const counts = {};
+        active.forEach(t => {
+            (t.lines || []).forEach(l => {
+                if (l.state === 'cancelled') return;
+                const key = l.product_id || l.full_product_name;
+                if (!counts[key]) {
+                    counts[key] = {
+                        product_id: key,
+                        name: l.full_product_name || key,
+                        qty: 0,
+                        isUrgent: false,
+                    };
+                }
+                counts[key].qty += l.qty_total || 1;
+                if (this.getElapsedMinutes(t) >= SLA_WARNING_MIN) {
+                    counts[key].isUrgent = true;
+                }
+            });
+        });
+        return Object.values(counts).sort((a, b) => b.qty - a.qty);
+    }
+
+    _computeOvenQueue() {
+        const cookingTickets = this.state.sortedTickets.filter(t => t.state === 'cooking');
+        let totalPizzas = 0;
+        cookingTickets.forEach(t => {
+            (t.lines || []).forEach(l => {
+                const cat = (l.product_category || '').toLowerCase();
+                if (cat.includes('pizza') || cat.includes('empanada') || cat.includes('mitad')) {
+                    totalPizzas += l.qty_total || 1;
+                }
+            });
+        });
+        const waiting = this.state.sortedTickets.filter(t => t.state === 'waiting').length;
+        this.state.ovenAvailable = Math.max(0, this.state.ovenCapacity - totalPizzas);
+        this.state.ovenWaiting = waiting;
     }
 
     onTicketNotification(message) {
@@ -165,32 +391,108 @@ class KitchenScreenDashboard extends Component {
     _advanceTicket(ticket) {
         const next = ticket.state === 'pending' ? 'cooking'
             : ticket.state === 'cooking' ? 'ready'
+            : ticket.state === 'waiting' ? 'ready'
             : ticket.state === 'ready' ? 'delivered'
             : null;
         if (!next) return;
 
+        const prevState = ticket.state;
         ticket.state = next;
+        ticket.optimistic = true;
+        ticket.syncError = false;
         this.state.tickets = [...this.state.tickets];
+        this._recomputeDerived();
 
         const method = next === 'cooking' ? 'progress_to_cooking'
             : next === 'ready' ? 'progress_to_ready'
             : 'progress_to_delivered';
 
-        this.orm.call("pos.kitchen.ticket", method, [ticket.id]).catch(err => {
-            console.error("Error advancing ticket:", err);
-        });
+        const undoAction = () => {
+            ticket.state = prevState;
+            ticket.optimistic = false;
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
+            return this.orm.call("pos.kitchen.ticket", this._reverseMethod(method), [ticket.id]);
+        };
 
-        setTimeout(() => this.loadTickets(), 1500);
+        this.orm.call("pos.kitchen.ticket", method, [ticket.id])
+            .then(() => {
+                ticket.optimistic = false;
+                this.state.tickets = [...this.state.tickets];
+            })
+            .catch(err => {
+                ticket.syncError = true;
+                ticket.state = prevState;
+                this.state.tickets = [...this.state.tickets];
+                this._recomputeDerived();
+                console.error("Error advancing ticket:", err);
+            });
+
+        const actionLabel = next === 'cooking' ? _t('al Horno')
+            : next === 'ready' ? _t('Listo')
+            : next === 'delivered' ? _t('Entregado')
+            : next;
+        this._showUndoToast(_t(`Ticket movido a ${actionLabel}`), { undo: undoAction });
+
+        if (next === 'delivered') {
+            setTimeout(() => {
+                this.state.ghostingTickets.add(ticket.id);
+                this.state.tickets = [...this.state.tickets];
+                setTimeout(() => {
+                    this.state.ghostingTickets.delete(ticket.id);
+                    this.loadTickets();
+                }, GHOST_DURATION_MS);
+            }, 2000);
+        }
+    }
+
+    _reverseMethod(method) {
+        const reverse = {
+            progress_to_cooking: 'cancel_ticket',
+            progress_to_ready: 'progress_to_cooking',
+            progress_to_delivered: 'progress_to_ready',
+        };
+        return reverse[method] || 'cancel_ticket';
+    }
+
+    async printTicket(ev, ticket) {
+        ev.stopPropagation();
+        try {
+            await this.orm.call("pos.kitchen.ticket", "print_ticket", [ticket.id]);
+            this.notification.add(_t("Ticket enviado a impresora"), { type: "info" });
+        } catch (error) {
+            this.notification.add(_t("Error al imprimir ticket"), { type: "danger" });
+            console.error("Error printing ticket:", error);
+        }
     }
 
     async cancelTicket(e) {
         const ticketId = Number(e.target.value);
+        const ticket = this.state.tickets.find(t => t.id === ticketId);
+        if (!ticket) return;
+
+        const prevState = ticket.state;
+        const prevPaymentStatus = ticket.payment_status;
+        ticket.state = 'cancelled';
+        this.state.tickets = [...this.state.tickets];
+        this._recomputeDerived();
+
+        const undoAction = () => {
+            ticket.state = prevState;
+            ticket.payment_status = prevPaymentStatus;
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
+            return Promise.resolve();
+        };
+
         try {
             await this.orm.call("pos.kitchen.ticket", "cancel_ticket", [ticketId]);
-            const ticket = this.state.tickets.find(t => t.id === ticketId);
-            if (ticket) ticket.state = 'cancelled';
-            setTimeout(() => this.loadTickets(), 500);
+            this._showUndoToast(_t(`Ticket cancelado`), { undo: undoAction });
         } catch (error) {
+            ticket.state = prevState;
+            ticket.payment_status = prevPaymentStatus;
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
             console.error("Error cancelling ticket:", error);
         }
     }
@@ -200,6 +502,7 @@ class KitchenScreenDashboard extends Component {
         const nextMap = {
             pending: 'cooking',
             cooking: 'ready',
+            waiting: 'ready',
             ready: 'cancelled',
             cancelled: 'pending',
         };
@@ -208,25 +511,40 @@ class KitchenScreenDashboard extends Component {
         const methodMap = {
             pending: 'action_cooking',
             cooking: 'action_ready',
+            waiting: 'action_ready',
             ready: 'action_cancel',
             cancelled: 'action_cooking',
         };
         const method = methodMap[line.state] || 'action_cooking';
 
+        const prevState = line.state;
+        line.state = next;
+        this.state.tickets = [...this.state.tickets];
+        this._recomputeDerived();
+
         try {
             await this.orm.call("pos.kitchen.ticket.line", method, [line.id]);
-            setTimeout(() => this.loadTickets(), 500);
         } catch (error) {
+            line.state = prevState;
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
             console.error("Error updating line:", error);
         }
     }
 
     async cancelLine(ev, line) {
         ev.stopPropagation();
+        const prevState = line.state;
+        line.state = 'cancelled';
+        this.state.tickets = [...this.state.tickets];
+        this._recomputeDerived();
+
         try {
             await this.orm.call("pos.kitchen.ticket.line", "action_cancel", [line.id]);
-            setTimeout(() => this.loadTickets(), 500);
         } catch (error) {
+            line.state = prevState;
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
             console.error("Error cancelling line:", error);
         }
     }

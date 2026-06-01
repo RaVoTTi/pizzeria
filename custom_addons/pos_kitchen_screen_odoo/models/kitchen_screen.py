@@ -62,6 +62,12 @@ class KitchenScreen(models.Model):
         help='Nombre de la impresora CUPS para tickets de cocina (ej: XP-80)',
     )
 
+    oven_capacity = fields.Integer(
+        string='Capacidad del Horno',
+        default=6,
+        help='Numero maximo de pizzas que caben en el horno al mismo tiempo',
+    )
+
     def kitchen_screen(self):
         """Redirect to corresponding kitchen screen for the cook"""
         return {

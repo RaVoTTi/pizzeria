@@ -35,6 +35,38 @@ if not pos_config:
         print(f"\n  Using existing POS config: {pos_config.name} (id={pos_config.id})")
     else:
         print("\n  No POS config found, creating POS Salon...")
+
+        # Ensure a bank journal exists (required by pos.config default values)
+        company = env.company
+        bank_journal = env['account.journal'].search([
+            ('company_id', '=', company.id),
+            ('type', '=', 'bank'),
+        ], limit=1)
+        if not bank_journal:
+            print("  Creating bank journal (required for POS)...")
+            bank_account = env['account.account'].search([
+                ('company_id', '=', company.id),
+                ('account_type', '=', 'asset_current'),
+            ], limit=1)
+            if not bank_account:
+                bank_account = env['account.account'].create({
+                    'name': 'Bank',
+                    'code': '1100',
+                    'account_type': 'asset_current',
+                    'company_id': company.id,
+                })
+                env.cr.commit()
+                print(f"  Created bank account: {bank_account.name}")
+            bank_journal = env['account.journal'].create({
+                'name': 'Bank',
+                'code': 'BNK1',
+                'type': 'bank',
+                'company_id': company.id,
+                'default_account_id': bank_account.id,
+            })
+            env.cr.commit()
+            print(f"  Created bank journal: {bank_journal.name}")
+
         pos_config = env['pos.config'].create({
             'name': 'POS Salon',
         })

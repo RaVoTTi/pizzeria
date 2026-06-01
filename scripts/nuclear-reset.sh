@@ -9,8 +9,20 @@ if [ "$1" = "--skip-docker" ]; then
     echo "  SOFT RESET - Pizzeria El Gordo"
     echo "  (clean data + reimport, Docker stays up)"
     echo "=========================================="
+
+    echo ""
+    echo "[0/3] Ensuring custom modules are installed..."
+    docker compose run --rm web odoo -c /etc/odoo/odoo.conf -d elgordo \
+      -i pos_kitchen_screen_odoo,pos_receipt_logo --stop-after-init
+
+    echo ""
+    echo "[1/3] Cleaning existing data..."
     "$SCRIPT_DIR/clean-data.sh"
+
+    echo ""
+    echo "[2/3] Reimporting all data..."
     "$SCRIPT_DIR/import-data.sh"
+
     echo ""
     echo "=========================================="
     echo "  SOFT RESET COMPLETE!"
@@ -39,7 +51,7 @@ docker compose up -d
 echo "  Waiting for database to be ready (20s)..."
 sleep 20
 docker compose run --rm web odoo server -c /etc/odoo/odoo.conf -d elgordo \
-  -i base,stock,mrp,point_of_sale,pos_restaurant,pos_kitchen_screen_odoo --stop-after-init
+  -i base,stock,mrp,point_of_sale,pos_restaurant,pos_kitchen_screen_odoo,pos_receipt_logo --stop-after-init
 
 echo ""
 echo "[2/3] Importing all data..."
