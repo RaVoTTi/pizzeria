@@ -29,7 +29,6 @@ class KitchenScreenDashboard extends Component {
         this.getElapsedColor = this.getElapsedColor.bind(this);
         this.getTicketType = this.getTicketType.bind(this);
         this.getPartnerName = this.getPartnerName.bind(this);
-        this.getTicketTypeLabel = this.getTicketTypeLabel.bind(this);
         this.getLineStatusLabel = this.getLineStatusLabel.bind(this);
         this.getRemainingQty = this.getRemainingQty.bind(this);
         this.getPaymentStatusLabel = this.getPaymentStatusLabel.bind(this);
@@ -37,8 +36,6 @@ class KitchenScreenDashboard extends Component {
         this.setStation = this.setStation.bind(this);
         this.undoLastAction = this.undoLastAction.bind(this);
         this.dismissAudioAlert = this.dismissAudioAlert.bind(this);
-        this.hasModifiers = this.hasModifiers.bind(this);
-        this.getModifierClass = this.getModifierClass.bind(this);
         this.getCardClasses = this.getCardClasses.bind(this);
 
         this.pendingStage = () => { this.state.stages = 'pending'; };
@@ -146,16 +143,6 @@ class KitchenScreenDashboard extends Component {
         return ticket.partner_name || '';
     }
 
-    getTicketTypeLabel(type) {
-        const labels = {
-            new: _t('NUEVO'),
-            addition: _t('ADICION'),
-            cancellation: _t('CANCEL'),
-            modification: _t('MODIF'),
-        };
-        return labels[type] || type;
-    }
-
     getLineStatusLabel(state) {
         const labels = {
             pending: _t('Pend'),
@@ -173,18 +160,6 @@ class KitchenScreenDashboard extends Component {
 
     getPaymentStatusLabel(status) {
         return status === 'paid' ? _t('PAGADO') : _t('NO PAGADO');
-    }
-
-    hasModifiers(ticket) {
-        if (!ticket.lines) return false;
-        return ticket.lines.some(l => l.note && l.note.trim());
-    }
-
-    getModifierClass(note) {
-        const n = (note || '').toLowerCase();
-        if (n.startsWith('sin ') || n.startsWith('no ') || n.startsWith('sin ')) return 'kds-modifier--sin';
-        if (n.startsWith('extra ') || n.startsWith('con extra') || n.startsWith('mas ')) return 'kds-modifier--extra';
-        return 'kds-modifier--note';
     }
 
     getCardClasses(ticket) {

@@ -1,10 +1,30 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
+
+
+def _extract_note_text(note_value):
+    """Extract text from Odoo 19 POS note field (JSON list of {text} dicts)."""
+    if not note_value:
+        return ""
+    if isinstance(note_value, str):
+        try:
+            parsed = json.loads(note_value)
+        except (json.JSONDecodeError, TypeError):
+            return note_value.strip()
+    else:
+        parsed = note_value
+    if isinstance(parsed, list):
+        parts = [item.get("text", "") for item in parsed if isinstance(item, dict) and item.get("text")]
+        return " ".join(parts)
+    if isinstance(parsed, dict):
+        return parsed.get("text", "")
+    return str(parsed).strip()
 
 VALID_TRANSITIONS = {
     "pending": {"cooking", "cancelled"},
@@ -250,7 +270,7 @@ class PosKitchenTicket(models.Model):
                     "qty_sent": l.qty_sent,
                     "qty_ready": l.qty_ready,
                     "qty_cancelled": l.qty_cancelled,
-                    "note": l.note or "",
+                    "note": _extract_note_text(l.note),
                     "state": l.state,
                     "product_category": l.product_category or "",
                 })
@@ -327,7 +347,7 @@ class PosKitchenTicket(models.Model):
                     "pos_order_line_id": order_line.id,
                     "qty_total": qty,
                     "qty_sent": qty,
-                    "note": order_line.note or "",
+                    "note": _extract_note_text(order_line.note),
                     "state": "pending",
                     "product_category": product_category,
                 }))
@@ -396,7 +416,7 @@ class PosKitchenTicket(models.Model):
                     "pos_order_line_id": order_line.id,
                     "qty_total": abs(delta),
                     "qty_sent": abs(delta),
-                    "note": order_line.note or "",
+                    "note": _extract_note_text(order_line.note),
                     "state": "pending",
                     "product_category": self._get_product_category(order_line.product_id),
                 })
@@ -423,7 +443,7 @@ class PosKitchenTicket(models.Model):
                     "pos_order_line_id": order_line.id,
                     "qty_total": abs(delta),
                     "qty_sent": abs(delta),
-                    "note": order_line.note or "",
+                    "note": _extract_note_text(order_line.note),
                     "state": "cancelled",
                     "product_category": self._get_product_category(order_line.product_id),
                 })

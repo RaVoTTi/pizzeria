@@ -92,8 +92,6 @@
                             <t t-set="elapsedMins" t-value="this.getElapsedMinutes(ticket)"/>
                             <t t-set="ticketType" t-value="this.getTicketType(ticket)"/>
                             <t t-set="partner" t-value="this.getPartnerName(ticket)"/>
-                            <t t-set="typeLabel" t-value="this.getTicketTypeLabel(ticket.ticket_type)"/>
-                            <t t-set="hasModifiers" t-value="this.hasModifiers(ticket)"/>
 
                             <div class="kds-card"
                                  t-att-class="this.getCardClasses(ticket)"
@@ -105,63 +103,64 @@
                                 <div class="kds-sync-error" t-if="ticket.syncError" title="Error de sincronizacion">!</div>
 
                                 <div class="kds-card-header">
-                                    <div class="order-info">
-                                        <div class="order-badges">
-                                            <!-- Order Type Icon (House vs Motorcycle) -->
-                                            <t t-if="ticketType === 'mesa'">
-                                                <span class="kds-badge-mesa">
-                                                    <svg class="order-type-icon__svg" viewBox="0 0 24 24">
-                                                        <path d="M12 3L4 9v12h5v-7h6v7h5V9z"/>
-                                                    </svg>
-                                                    MESA <t t-esc="ticket.table_name"/>
-                                                </span>
+                                    <!-- Line 1: ID • Client/Table • Time -->
+                                    <div class="kds-header-row-1">
+                                        <div class="kds-header-identity">
+                                            <span class="kds-order-id">#<t t-esc="(ticket.sequence || 'KT-0001').replace('KT-', '')"/><t t-esc="ticket.batch_letter || 'A'"/></span>
+                                            <span class="kds-header-dot">•</span>
+                                            <t t-if="partner">
+                                                <span class="kds-customer-name"><t t-esc="partner"/></span>
+                                            </t>
+                                            <t t-elif="ticketType === 'mesa'">
+                                                <span class="kds-customer-name">MESA <t t-esc="ticket.table_name"/></span>
                                             </t>
                                             <t t-else="">
-                                                <span class="kds-badge-delivery">
-                                                    <svg class="order-type-icon__svg" viewBox="0 0 24 24">
-                                                        <path d="M18 7h-3V5a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2h6l4 4V9h1a2 2 0 002-2V9a2 2 0 00-2-2zM7 17V7h4v10H7zm10-2h-2V9h2v6z"/>
-                                                    </svg>
-                                                    DELIVERY
-                                                </span>
+                                                <span class="kds-customer-name">RETIRO</span>
                                             </t>
-
-                                            <!-- Ticket Type Badge -->
-                                            <span t-att-class="ticket.ticket_type === 'addition' ? 'kds-badge kds-badge-addition' : ticket.ticket_type === 'cancellation' ? 'kds-badge kds-badge-cancellation' : 'kds-badge kds-badge-new'">
-                                                <t t-esc="typeLabel"/>
-                                            </span>
-
-                                            <!-- Payment Status Badge -->
-                                            <span t-att-class="ticket.payment_status === 'paid' ? 'kds-badge kds-badge-paid' : 'kds-badge kds-badge-not-paid'">
-                                                <t t-esc="ticket.payment_status === 'paid' ? 'PAGADO' : 'NO PAGADO'"/>
-                                            </span>
                                         </div>
-
-                                        <!-- Order Name -->
-                                        <span class="order-name">
-                                            <t t-esc="ticket.pos_reference || ticket.order_name"/>
-                                        </span>
-
-                                        <!-- Customer Name -->
-                                        <t t-if="partner">
-                                            <span class="order-customer"><t t-esc="partner"/></span>
-                                        </t>
+                                        <div class="kds-elapsed"
+                                             t-att-class="elapsedColor === 'red' ? 'kds-elapsed kds-elapsed--red' : elapsedColor === 'amber' ? 'kds-elapsed kds-elapsed--amber' : 'kds-elapsed kds-elapsed--green'">
+                                            <span class="kds-elapsed-num"><t t-esc="elapsedMins"/></span>
+                                            <span class="kds-elapsed-unit">min</span>
+                                        </div>
                                     </div>
 
-                                    <!-- Elapsed Time -->
-                                    <div class="kds-elapsed"
-                                         t-att-class="elapsedColor === 'red' ? 'kds-elapsed kds-elapsed--red' : elapsedColor === 'amber' ? 'kds-elapsed kds-elapsed--amber' : 'kds-elapsed kds-elapsed--green'">
-                                        <span class="kds-elapsed-num"><t t-esc="elapsedMins"/></span>
-                                        <span class="kds-elapsed-unit">min</span>
+                                    <!-- Line 2: Ticket Type • Order Type • Payment -->
+                                    <div class="kds-header-row-2">
+                                        <div class="kds-operational-status">
+                                            <t t-if="ticket.ticket_type === 'cancellation'">
+                                                <span class="kds-op-badge kds-op-badge--cancellation">CANCELACION</span>
+                                            </t>
+                                            <t t-elif="ticket.ticket_type === 'addition'">
+                                                <span class="kds-op-badge kds-op-badge--addition">ADICION</span>
+                                            </t>
+                                            <t t-elif="ticket.ticket_type === 'modification'">
+                                                <span class="kds-op-badge kds-op-badge--modification">MODIFICACION</span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="kds-op-badge kds-op-badge--new">NUEVO</span>
+                                            </t>
+                                        </div>
+                                        <div class="kds-order-type-inline">
+                                            <t t-if="ticketType === 'mesa'">
+                                                <span class="kds-type-badge kds-type-mesa">MESA</span>
+                                            </t>
+                                            <t t-elif="ticket.partner_name">
+                                                <span class="kds-type-badge kds-type-delivery">DELIVERY</span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="kds-type-badge kds-type-pickup">RETIRO</span>
+                                            </t>
+                                            <t t-if="ticket.requested_time">
+                                                <span class="kds-header-dot">•</span>
+                                                <span class="kds-delivery-time"><t t-esc="ticket.requested_time"/></span>
+                                            </t>
+                                        </div>
+                                        <span t-att-class="ticket.payment_status === 'paid' ? 'kds-payment-badge kds-payment--paid' : 'kds-payment-badge kds-payment--unpaid'">
+                                            <t t-esc="ticket.payment_status === 'paid' ? 'PAGADO' : 'NO PAGO'"/>
+                                        </span>
                                     </div>
                                 </div>
-
-                                <!-- Requested Time -->
-                                <t t-if="ticket.requested_time">
-                                    <div class="kds-requested-time">
-                                        <span class="kds-requested-time__label">Entrega:</span>
-                                        <span class="kds-requested-time__value"><t t-esc="ticket.requested_time"/></span>
-                                    </div>
-                                </t>
 
                                 <!-- Product Lines -->
                                 <div class="kds-card-body">
@@ -188,10 +187,9 @@
                                             </t>
                                         </div>
 
-                                        <!-- High-Contrast Modifier Badges -->
+                                        <!-- Inline Note -->
                                         <t t-if="line.note">
-                                            <t t-set="modifierClass" t-value="this.getModifierClass(line.note)"/>
-                                            <div class="kds-modifier" t-att-class="'kds-modifier ' + modifierClass">
+                                            <div class="kds-inline-note">
                                                 <t t-esc="line.note"/>
                                             </div>
                                         </t>

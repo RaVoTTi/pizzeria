@@ -357,10 +357,9 @@
 /* ========== HEADER ========== */
 .kds-card-header {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 14px 16px;
-    gap: 10px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px;
 }
 
 .kds-card[data-state="pending"] .kds-card-header   { background-color: #f59e0b; color: #000; }
@@ -369,116 +368,137 @@
 .kds-card[data-state="ready"] .kds-card-header     { background-color: #22c55e; color: #000; }
 .kds-card[data-state="delivered"] .kds-card-header { background-color: #3b82f6; color: #fff; }
 
-.order-info {
+/* Header Row 1: ID • Client • Time */
+.kds-header-row-1 {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.kds-header-identity {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     min-width: 0;
     flex: 1;
 }
 
-.order-type-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
+.kds-order-id {
+    font-size: 1.3rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.kds-header-dot {
+    font-size: 1rem;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.kds-customer-name {
+    font-size: 1rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.order-type-icon__svg {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
-}
-
-.order-name {
-    font-size: 1.4rem;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.order-customer {
-    font-size: 0.9rem;
-    opacity: 0.8;
-}
-
-.order-badges {
+/* Header Row 2: Operational • Type • Payment */
+.kds-header-row-2 {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 6px;
-    align-items: center;
-    flex-wrap: wrap;
+    font-size: 0.8rem;
+    font-weight: 700;
 }
 
-.kds-badge-mesa {
-    display: inline-flex;
+.kds-operational-status {
+    display: flex;
     align-items: center;
     gap: 4px;
-    background-color: #2563eb;
-    color: #fff;
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 3px 12px;
-    border-radius: 4px;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
 }
 
-.kds-badge-delivery {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background-color: #f97316;
-    color: #fff;
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 3px 12px;
-    border-radius: 4px;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-}
-
-/* ========== TICKET TYPE BADGES ========== */
-.kds-badge {
+.kds-op-badge {
     display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.kds-op-badge--new { background-color: rgba(34, 197, 94, 0.3); }
+.kds-op-badge--addition { background-color: rgba(59, 130, 246, 0.3); }
+.kds-op-badge--modification { background-color: rgba(239, 68, 68, 0.4); }
+.kds-op-badge--cancellation { background-color: rgba(239, 68, 68, 0.5); text-decoration: line-through; }
+
+.kds-card[data-state="pending"] .kds-op-badge--new { background-color: rgba(0, 0, 0, 0.15); }
+.kds-card[data-state="ready"] .kds-op-badge--new { background-color: rgba(0, 0, 0, 0.15); }
+
+.kds-order-type-inline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kds-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 4px;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
+    letter-spacing: 0.04em;
+}
+
+.kds-type-mesa { background-color: rgba(37, 99, 235, 0.3); }
+.kds-type-delivery { background-color: rgba(249, 115, 22, 0.3); }
+.kds-type-pickup { background-color: rgba(107, 114, 128, 0.3); }
+
+.kds-delivery-time {
+    font-size: 0.75rem;
+    font-weight: 700;
     opacity: 0.85;
 }
 
-.kds-badge-new { background-color: #22c55e; color: #000; }
-.kds-badge-addition { background-color: #3b82f6; color: #fff; }
-.kds-badge-cancellation { background-color: #ef4444; color: #fff; }
+.kds-payment-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
 
-.kds-badge-paid { background-color: #22c55e; color: #000; }
-.kds-badge-not-paid { background-color: #f59e0b; color: #000; }
+.kds-payment--paid { background-color: rgba(34, 197, 94, 0.3); }
+.kds-payment--unpaid { background-color: rgba(245, 158, 11, 0.4); }
+
+.kds-card[data-state="pending"] .kds-payment--paid { background-color: rgba(0, 0, 0, 0.15); }
+.kds-card[data-state="ready"] .kds-payment--paid { background-color: rgba(0, 0, 0, 0.15); }
 
 /* ========== ELAPSED TIME ========== */
 .kds-elapsed {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    align-items: baseline;
+    gap: 2px;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
 .kds-elapsed-num {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 900;
     line-height: 1;
 }
 
 .kds-elapsed-unit {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     opacity: 0.7;
@@ -493,31 +513,6 @@
 .kds-card[data-state="waiting"] .kds-elapsed   { color: #fff; }
 .kds-card[data-state="ready"] .kds-elapsed     { color: #000; }
 .kds-card[data-state="delivered"] .kds-elapsed { color: #fff; }
-
-/* ========== REQUESTED TIME ========== */
-.kds-requested-time {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    background-color: #1a1a2e;
-    border-top: 1px solid #2a2a3e;
-    border-bottom: 1px solid #2a2a3e;
-    font-size: 0.85rem;
-}
-
-.kds-requested-time__label {
-    color: #8888a0;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.kds-requested-time__value {
-    color: #f59e0b;
-    font-weight: 700;
-    font-size: 0.95rem;
-}
 
 /* ========== BODY (PRODUCT LINES) ========== */
 .kds-card-body {
@@ -612,63 +607,22 @@
     border-color: #ef4444;
 }
 
-/* ========== HIGH-CONTRAST MODIFIER BADGES ========== */
-.kds-modifier {
-    background-color: #000;
-    color: #fff;
-    font-size: 0.85rem;
-    font-weight: 900;
-    padding: 4px 10px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    border: 1px solid #333;
+/* ========== INLINE NOTES ========== */
+.kds-inline-note {
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-style: italic;
+    color: #a0a0b8;
+    padding: 2px 0 2px 28px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    letter-spacing: 0.02em;
 }
 
-.kds-modifier::before {
-    content: "!";
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    background-color: #ef4444;
-    color: #fff;
-    border-radius: 50%;
-    font-size: 0.7rem;
-    font-weight: 900;
-    flex-shrink: 0;
-}
-
-.kds-modifier--sin {
-    background-color: #000;
-    border-color: #ef4444;
-}
-
-.kds-modifier--extra {
-    background-color: #000;
-    border-color: #22c55e;
-}
-
-.kds-modifier--extra::before {
-    background-color: #22c55e;
-    content: "+";
-}
-
-.kds-modifier--note {
-    background-color: #fbbf24;
-    color: #000;
-    border-color: #f59e0b;
-}
-
-.kds-modifier--note::before {
-    background-color: #000;
-    color: #fbbf24;
-    content: "!";
+.kds-inline-note::before {
+    content: "→ ";
+    color: #6366f1;
+    font-weight: 700;
 }
 
 /* ========== LEGACY NOTE STYLE (kept for compatibility) ========== */
