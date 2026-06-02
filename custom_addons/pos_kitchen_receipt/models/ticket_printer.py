@@ -87,11 +87,28 @@ class TicketPrinter(models.AbstractModel):
                 categories["Otro"].append(entry)
 
         cat_order = [
-            ("Pizza", "PIZZAS"),
             ("Empanada", "EMPANADAS"),
             ("Bebida", "BEBIDAS"),
             ("Otro", "OTROS"),
         ]
+
+        pizza_items = categories.get("Pizza", [])
+        if pizza_items:
+            if ticket.table_id:
+                pizza_label = "PIZZAS SALON"
+            elif ticket.partner_id and ticket.partner_id.street:
+                pizza_label = "PIZZAS DELIVERY"
+            else:
+                pizza_label = "PIZZAS RETIRA"
+            lines.append(f"{BOLD}{pizza_label}{NORM}")
+            for item in pizza_items:
+                qty = int(item["qty"]) if item["qty"] == int(item["qty"]) else item["qty"]
+                name = self._truncate_name(item["name"].upper(), 21)
+                qty_str = f"{qty}x"
+                lines.append(f"{DBLH} {qty_str:>3} {name}{NORM}")
+                if item["note"]:
+                    lines.append(f"     {REV_ON} {item['note'][:28].upper()} {REV_OFF}")
+            lines.append("")
 
         for cat_key, cat_label in cat_order:
             items = categories.get(cat_key, [])
@@ -121,9 +138,10 @@ class TicketPrinter(models.AbstractModel):
                 lines.append(f"  {ticket.partner_id.street2}")
 
         lines.append(DIVIDER)
-        created_time = ticket.create_date.strftime("%H:%M") if ticket.create_date else ""
-        if created_time:
-            lines.append(f"CREADO {created_time}")
+        order = ticket.origin_pos_order_id
+        if order and hasattr(order, 'amount_total') and order.amount_total:
+            total_str = f"${order.amount_total:,.0f}" if order.amount_total == int(order.amount_total) else f"${order.amount_total:,.2f}"
+            lines.append(f"{DBLHW}TOTAL: {total_str}{NORM}")
 
         lines.append(ESC + "d" + "\x03")
         if with_cut:
@@ -207,14 +225,14 @@ class TicketPrinter(models.AbstractModel):
     def _get_product_category(self, product):
         if product.pos_categ_ids:
             cat_name = product.pos_categ_ids[0].name.lower()
-            if "pizza" in cat_name or "mitad" in cat_name:
+            if "pizza" in cat_name:
                 return "Pizza"
             if "empanada" in cat_name:
                 return "Empanada"
             if "cerveza" in cat_name or "bebida" in cat_name or "delivery" in cat_name:
                 return "Bebida"
         name = (product.name or "").lower()
-        if "pizza" in name or "mitad" in name or "panini" in name:
+        if "pizza" in name or "panini" in name:
             return "Pizza"
         if "empanada" in name:
             return "Empanada"

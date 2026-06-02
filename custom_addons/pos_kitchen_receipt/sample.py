@@ -71,6 +71,12 @@ def build_ticket(sequence="KT-0042", batch="A", ticket_type="new",
         ticket.origin_pos_order_id = MockObj(
             general_customer_note=customer_note,
             lines=mock_lines,
+            amount_total=0,
+        )
+    else:
+        total = sum(ln.qty_total * 100 for ln in (lines or []))
+        ticket.origin_pos_order_id = MockObj(
+            amount_total=total,
         )
 
     return ticket

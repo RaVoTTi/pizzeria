@@ -37,8 +37,6 @@ class KitchenScreenDashboard extends Component {
         this.setStation = this.setStation.bind(this);
         this.undoLastAction = this.undoLastAction.bind(this);
         this.dismissAudioAlert = this.dismissAudioAlert.bind(this);
-        this.isMitadTicket = this.isMitadTicket.bind(this);
-        this.isMitadLine = this.isMitadLine.bind(this);
         this.hasModifiers = this.hasModifiers.bind(this);
         this.getModifierClass = this.getModifierClass.bind(this);
         this.getCardClasses = this.getCardClasses.bind(this);
@@ -88,6 +86,13 @@ class KitchenScreenDashboard extends Component {
             this.busService.subscribe('notification', this.onTicketNotification);
             this.loadTickets();
 
+            this._unlockAudio = () => {
+                if (this._audioCtx && this._audioCtx.state === 'suspended') {
+                    this._audioCtx.resume();
+                }
+            };
+            document.addEventListener('click', this._unlockAudio, { once: true });
+
             this.autoRefreshInterval = setInterval(() => {
                 this.loadTickets();
             }, 30000);
@@ -103,6 +108,7 @@ class KitchenScreenDashboard extends Component {
             clearInterval(this.autoRefreshInterval);
             clearInterval(this.elapsedTimer);
             if (this._undoTimeout) clearTimeout(this._undoTimeout);
+            document.removeEventListener('click', this._unlockAudio);
         });
     }
 
@@ -169,16 +175,6 @@ class KitchenScreenDashboard extends Component {
         return status === 'paid' ? _t('PAGADO') : _t('NO PAGADO');
     }
 
-    isMitadTicket(ticket) {
-        if (!ticket.lines) return false;
-        return ticket.lines.some(l => this.isMitadLine(l));
-    }
-
-    isMitadLine(line) {
-        const name = (line.full_product_name || '').toLowerCase();
-        return name.includes('mitad') || name.includes('1/2') || name.includes('half');
-    }
-
     hasModifiers(ticket) {
         if (!ticket.lines) return false;
         return ticket.lines.some(l => l.note && l.note.trim());
@@ -223,6 +219,9 @@ class KitchenScreenDashboard extends Component {
                 this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
             const ctx = this._audioCtx;
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
@@ -238,8 +237,11 @@ class KitchenScreenDashboard extends Component {
     }
 
     _vibrate(pattern = [100, 50, 100]) {
-        if (navigator.vibrate) {
-            navigator.vibrate(pattern);
+        try {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        } catch (e) {
         }
     }
 
@@ -318,7 +320,6 @@ class KitchenScreenDashboard extends Component {
             if (!t.lines) return false;
             return t.lines.some(l => {
                 const cat = l.product_category || '';
-                if (cat.toLowerCase().includes('mitad')) return false;
                 return cat === this.state.activeStation;
             });
         });
@@ -362,7 +363,7 @@ class KitchenScreenDashboard extends Component {
         cookingTickets.forEach(t => {
             (t.lines || []).forEach(l => {
                 const cat = (l.product_category || '').toLowerCase();
-                if (cat.includes('pizza') || cat.includes('empanada') || cat.includes('mitad')) {
+                if (cat.includes('pizza') || cat.includes('empanada')) {
                     totalPizzas += l.qty_total || 1;
                 }
             });

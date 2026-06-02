@@ -93,7 +93,6 @@
                             <t t-set="ticketType" t-value="this.getTicketType(ticket)"/>
                             <t t-set="partner" t-value="this.getPartnerName(ticket)"/>
                             <t t-set="typeLabel" t-value="this.getTicketTypeLabel(ticket.ticket_type)"/>
-                            <t t-set="isMitad" t-value="this.isMitadTicket(ticket)"/>
                             <t t-set="hasModifiers" t-value="this.hasModifiers(ticket)"/>
 
                             <div class="kds-card"
@@ -171,16 +170,7 @@
                                              t-att-class="line.state === 'ready' ? 'kds-line kds-line--ready' : line.state === 'cancelled' ? 'kds-line kds-line--cancelled' : line.state === 'waiting' ? 'kds-line kds-line--waiting' : 'kds-line'"
                                              t-on-click.stop="(e) => this.onLineClick(e, line)">
 
-                                            <!-- Split-Circle Icon for Mitad Pizzas -->
-                                            <t t-if="this.isMitadLine(line)">
-                                                <div class="kds-mitad-icon">
-                                                    <div class="kds-mitad-icon__half kds-mitad-icon__half--left">A</div>
-                                                    <div class="kds-mitad-icon__half kds-mitad-icon__half--right">B</div>
-                                                </div>
-                                            </t>
-                                            <t t-else="">
-                                                <span class="qty"><t t-esc="line.qty_total"/>x</span>
-                                            </t>
+                                            <span class="qty"><t t-esc="line.qty_total"/>x</span>
 
                                             <span class="product-name"><t t-esc="line.full_product_name"/></span>
 

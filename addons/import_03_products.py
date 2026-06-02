@@ -21,20 +21,6 @@ for row in salon_pizza_rows:
     create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=True)
 env.cr.commit()
 
-# --- Mitades Mostrador ---
-print("\n  Mitades — Mostrador...")
-mitad_rows = csv_rows('mitades.csv')
-for row in mitad_rows:
-    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=False)
-env.cr.commit()
-
-# --- Mitades Salon ---
-print("\n  Mitades — Salon...")
-salon_mitad_rows = csv_rows('mitades_salon.csv')
-for row in salon_mitad_rows:
-    create_product_from_csv(env, row, cat_ids, product_ids, product_by_name, is_salon=True)
-env.cr.commit()
-
 # --- Empanadas Mostrador ---
 print("\n  Empanadas — Mostrador...")
 emp_rows = csv_rows('empanadas.csv')
@@ -51,7 +37,5 @@ env.cr.commit()
 
 print(f"\n  Mostrador pizzas: {len(pizza_rows)}")
 print(f"  Salon pizzas: {len(salon_pizza_rows)}")
-print(f"  Mostrador mitades: {len(mitad_rows)}")
-print(f"  Salon mitades: {len(salon_mitad_rows)}")
 print(f"  Mostrador empanadas: {len(emp_rows)}")
 print(f"  Salon empanadas: {len(salon_emp_rows)}")

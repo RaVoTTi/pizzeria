@@ -167,7 +167,7 @@ class PosKitchenTicket(models.Model):
         count = 0
         for line in self.line_ids:
             cat = (line.product_category or "").lower()
-            if "pizza" in cat or "empanada" in cat or "mitad" in cat:
+            if "pizza" in cat or "empanada" in cat:
                 count += line.qty_total
         return count
 
@@ -255,7 +255,7 @@ class PosKitchenTicket(models.Model):
                     "product_category": l.product_category or "",
                 })
                 cat = l.product_category or ""
-                if cat and "mitad" not in cat.lower():
+                if cat:
                     all_categories.add(cat)
             result.append({
                 "id": ticket.id,

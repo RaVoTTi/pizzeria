@@ -76,7 +76,6 @@ def get_categ_id(env, categ_ref, cat_ids):
         'cat_bebidas': 'Bebidas sin Alcohol',
         'cat_birra_venta': 'Cerveza Barra',
         'cat_pizzas': 'Pizzas',
-        'cat_mitades': 'Mitades',
         'cat_delivery': 'Deliveries',
         'cat_emp': 'Empanadas',
         'cat_all': 'Todos',
@@ -86,7 +85,10 @@ def get_categ_id(env, categ_ref, cat_ids):
         rec = env['product.category'].search([('name', '=', name)], limit=1)
         if rec:
             return rec.id
-    return env.ref('product.product_category_all').id
+    rec = env['product.category'].search([], limit=1)
+    if rec:
+        return rec.id
+    raise ValueError(f"No product category found for '{categ_ref}' and no fallback available")
 
 
 def find_product_by_name(env, product_name):
