@@ -164,7 +164,16 @@
 
                                 <!-- Product Lines -->
                                 <div class="kds-card-body">
+                                    <t t-set="lastCat" t-value="''"/>
                                     <t t-foreach="ticket.lines" t-as="line" t-key="line.id">
+                                        <!-- Category Section Header -->
+                                        <t t-if="line.category_label !== lastCat">
+                                            <t t-set="lastCat" t-value="line.category_label"/>
+                                            <div class="kds-category-header">
+                                                <span><t t-esc="line.category_label"/></span>
+                                            </div>
+                                        </t>
+
                                         <div class="kds-line"
                                              t-att-class="line.state === 'ready' ? 'kds-line kds-line--ready' : line.state === 'cancelled' ? 'kds-line kds-line--cancelled' : line.state === 'waiting' ? 'kds-line kds-line--waiting' : 'kds-line'"
                                              t-on-click.stop="(e) => this.onLineClick(e, line)">
@@ -187,9 +196,10 @@
                                             </t>
                                         </div>
 
-                                        <!-- Inline Note -->
+                                        <!-- Note Block -->
                                         <t t-if="line.note">
-                                            <div class="kds-inline-note">
+                                            <t t-set="noteClass" t-value="this.getModifierClass(line.note)"/>
+                                            <div class="kds-inline-note" t-att-class="'kds-inline-note ' + noteClass">
                                                 <t t-esc="line.note"/>
                                             </div>
                                         </t>

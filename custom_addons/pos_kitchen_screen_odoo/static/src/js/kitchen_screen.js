@@ -36,6 +36,7 @@ class KitchenScreenDashboard extends Component {
         this.setStation = this.setStation.bind(this);
         this.undoLastAction = this.undoLastAction.bind(this);
         this.dismissAudioAlert = this.dismissAudioAlert.bind(this);
+        this.getModifierClass = this.getModifierClass.bind(this);
         this.getCardClasses = this.getCardClasses.bind(this);
 
         this.pendingStage = () => { this.state.stages = 'pending'; };
@@ -159,7 +160,14 @@ class KitchenScreenDashboard extends Component {
     }
 
     getPaymentStatusLabel(status) {
-        return status === 'paid' ? _t('PAGADO') : _t('NO PAGADO');
+        return status === 'paid' ? _t('PAGADO') : _t('NO PAGO');
+    }
+
+    getModifierClass(note) {
+        const n = (note || '').toLowerCase();
+        if (n.startsWith('sin ') || n.startsWith('no ')) return 'kds-inline-note--sin';
+        if (n.startsWith('extra ') || n.startsWith('con extra') || n.startsWith('mas ')) return 'kds-inline-note--extra';
+        return '';
     }
 
     getCardClasses(ticket) {

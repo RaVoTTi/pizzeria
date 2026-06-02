@@ -256,11 +256,15 @@ class PosKitchenTicket(models.Model):
             ("state", "not in", ["delivered", "cancelled"]),
         ], order="create_date desc")
 
+        CATEGORY_ORDER = ["Pizza", "Empanada", "Bebida", "Otro"]
+        CATEGORY_LABELS = {"Pizza": "PIZZAS", "Empanada": "EMPANADAS", "Bebida": "BEBIDAS", "Otro": "OTROS"}
+
         result = []
         all_categories = set()
         for ticket in tickets:
             lines = []
             for l in ticket.line_ids:
+                cat = self._get_product_category(l.product_id)
                 lines.append({
                     "id": l.id,
                     "product_id": l.product_id.id,
@@ -273,10 +277,12 @@ class PosKitchenTicket(models.Model):
                     "note": _extract_note_text(l.note),
                     "state": l.state,
                     "product_category": l.product_category or "",
+                    "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
+                    "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
                 })
-                cat = l.product_category or ""
                 if cat:
                     all_categories.add(cat)
+            lines.sort(key=lambda x: (x["category_sort"], x["full_product_name"]))
             result.append({
                 "id": ticket.id,
                 "origin_pos_order_id": ticket.origin_pos_order_id.id,

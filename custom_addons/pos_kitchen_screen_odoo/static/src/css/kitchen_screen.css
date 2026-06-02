@@ -413,6 +413,7 @@
     gap: 6px;
     font-size: 0.8rem;
     font-weight: 700;
+    flex-wrap: wrap;
 }
 
 .kds-operational-status {
@@ -423,21 +424,20 @@
 
 .kds-op-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 4px;
     font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-.kds-op-badge--new { background-color: rgba(34, 197, 94, 0.3); }
-.kds-op-badge--addition { background-color: rgba(59, 130, 246, 0.3); }
-.kds-op-badge--modification { background-color: rgba(239, 68, 68, 0.4); }
-.kds-op-badge--cancellation { background-color: rgba(239, 68, 68, 0.5); text-decoration: line-through; }
-
-.kds-card[data-state="pending"] .kds-op-badge--new { background-color: rgba(0, 0, 0, 0.15); }
-.kds-card[data-state="ready"] .kds-op-badge--new { background-color: rgba(0, 0, 0, 0.15); }
+.kds-op-badge--new         { background-color: #22c55e; color: #000; }
+.kds-op-badge--addition    { background-color: #3b82f6; }
+.kds-op-badge--modification{ background-color: #ef4444; }
+.kds-op-badge--cancellation{ background-color: #991b1b; text-decoration: line-through; }
 
 .kds-order-type-inline {
     display: flex;
@@ -447,40 +447,40 @@
 
 .kds-type-badge {
     display: inline-block;
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 3px 8px;
+    border-radius: 4px;
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-.kds-type-mesa { background-color: rgba(37, 99, 235, 0.3); }
-.kds-type-delivery { background-color: rgba(249, 115, 22, 0.3); }
-.kds-type-pickup { background-color: rgba(107, 114, 128, 0.3); }
+.kds-type-mesa     { background-color: #2563eb; }
+.kds-type-delivery { background-color: #f97316; }
+.kds-type-pickup   { background-color: #6b7280; }
 
 .kds-delivery-time {
     font-size: 0.75rem;
     font-weight: 700;
-    opacity: 0.85;
+    color: #fbbf24;
 }
 
 .kds-payment-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 4px;
     font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-.kds-payment--paid { background-color: rgba(34, 197, 94, 0.3); }
-.kds-payment--unpaid { background-color: rgba(245, 158, 11, 0.4); }
-
-.kds-card[data-state="pending"] .kds-payment--paid { background-color: rgba(0, 0, 0, 0.15); }
-.kds-card[data-state="ready"] .kds-payment--paid { background-color: rgba(0, 0, 0, 0.15); }
+.kds-payment--paid   { background-color: #22c55e; color: #000; }
+.kds-payment--unpaid { background-color: #f59e0b; color: #000; }
 
 /* ========== ELAPSED TIME ========== */
 .kds-elapsed {
@@ -521,8 +521,22 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-    overflow-y: auto;
-    max-height: 250px;
+}
+
+/* ========== CATEGORY SECTION HEADER ========== */
+.kds-category-header {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6366f1;
+    padding: 6px 0 2px;
+    margin-top: 4px;
+    border-bottom: 1px solid #2e2e48;
+}
+
+.kds-category-header:first-child {
+    margin-top: 0;
 }
 
 .kds-line {
@@ -607,50 +621,38 @@
     border-color: #ef4444;
 }
 
-/* ========== INLINE NOTES ========== */
+/* ========== NOTE BLOCKS ========== */
 .kds-inline-note {
     font-size: 0.8rem;
-    font-weight: 600;
-    font-style: italic;
-    color: #a0a0b8;
-    padding: 2px 0 2px 28px;
-    margin-top: -2px;
-    margin-bottom: 2px;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #e0e0f0;
+    background-color: #1a1a2e;
+    border-left: 3px solid #6366f1;
+    padding: 4px 8px 4px 12px;
+    margin-top: -3px;
+    margin-bottom: 3px;
+    border-radius: 0 4px 4px 0;
+}
+
+.kds-inline-note--sin {
+    border-left-color: #ef4444;
+    background-color: #1f1020;
+    color: #fca5a5;
+}
+
+.kds-inline-note--extra {
+    border-left-color: #22c55e;
+    background-color: #0f1f15;
+    color: #86efac;
 }
 
 .kds-inline-note::before {
-    content: "→ ";
-    color: #6366f1;
-    font-weight: 700;
-}
-
-/* ========== LEGACY NOTE STYLE (kept for compatibility) ========== */
-.kds-note {
-    background-color: #fbbf24;
-    color: #000;
-    font-size: 0.95rem;
-    font-weight: 700;
-    padding: 6px 10px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.kds-note::before {
-    content: "!";
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    background-color: #000;
-    color: #fbbf24;
-    border-radius: 50%;
-    font-size: 0.75rem;
-    font-weight: 900;
-    flex-shrink: 0;
+    content: "▎";
+    color: inherit;
+    opacity: 0.5;
+    margin-right: 4px;
 }
 
 /* ========== NEXT-ACTION HINT ========== */
