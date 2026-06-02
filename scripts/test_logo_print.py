@@ -40,9 +40,7 @@ def build_escpos_from_pbm(pbm_path):
     margin = (PRINTABLE_WIDTH - width) // 2
 
     result = bytearray()
-    result.extend(ESC + b"$\x00\x00")
-    if margin > 0:
-        result.extend(ESC + b"$" + bytes([margin & 0xFF, (margin >> 8) & 0xFF]))
+    result.extend(ESC + b"a\x01")  # center align
 
     for band in range(bands):
         band_y = band * 8

@@ -6,6 +6,7 @@ backups/
 __pycache__/
 *.pyc
 .DS_Store
+addons/kitchen_samples/
 
 # Playwright
 e2e/node_modules/

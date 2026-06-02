@@ -11,7 +11,7 @@ class TicketPrinter(models.AbstractModel):
     _name = "kitchen.ticket.printer"
     _description = "Kitchen ticket ESC/POS formatting and printing"
 
-    def format_ticket_escpos(self, ticket):
+    def format_ticket_escpos(self, ticket, with_cut=True):
         ESC = "\x1b"
         REV_ON = ESC + "\x1dB\x01"
         REV_OFF = ESC + "\x1dB\x00"
@@ -20,6 +20,7 @@ class TicketPrinter(models.AbstractModel):
         DBLH = ESC + "!\x10"
         DBLHW = ESC + "!\x30"
         DIVIDER = "-" * 42
+        CUT = ESC + "i"
 
         lines = []
         lines.append(ESC + "@")
@@ -125,7 +126,8 @@ class TicketPrinter(models.AbstractModel):
             lines.append(f"CREADO {created_time}")
 
         lines.append(ESC + "d" + "\x03")
-        lines.append(ESC + "i")
+        if with_cut:
+            lines.append(CUT)
 
         return "\n".join(lines) + "\n"
 
@@ -134,15 +136,17 @@ class TicketPrinter(models.AbstractModel):
         if not printer:
             _logger.warning("No printer configured for kitchen screen")
             return False
-        ticket_str = self.format_ticket_escpos(ticket)
+        ticket_str = self.format_ticket_escpos(ticket, with_cut=False)
         data = ticket_str.encode("utf-8", errors="replace")
         if with_logo:
             try:
-                from odoo.addons.pos_receipt_logo.models.receipt_logo import ReceiptLogo
-                logo_bytes = ReceiptLogo.get_logo_escpos_bytes()
-                data = data + b"\x1b@" + logo_bytes
+                from odoo.addons.pos_kitchen_receipt.models._logo import get_logo_escpos_bytes
+                logo_bytes = get_logo_escpos_bytes()
+                if logo_bytes:
+                    data = data + logo_bytes + b"\x1bd\x08"
             except Exception:
                 pass
+        data = data + b"\x1bi"
         try:
             result = subprocess.run(
                 ["lp", "-d", printer, "-o", "raw"],

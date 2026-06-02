@@ -44,8 +44,8 @@ def process_logo(
 
     # Build P4 PBM manually for maximum control
     # Trim empty rows (all white) from top and bottom, keeping padding
-    top_padding = 8    # dots of padding at top
-    bottom_padding = 8  # dots of padding at bottom
+    top_padding = 0
+    bottom_padding = 0
     pixels = list(img.getdata())
     w, h = img.size
 
@@ -71,8 +71,8 @@ def process_logo(
     trim_bottom = min(h - 1, last_content + bottom_padding)
 
     # Round trim_top down to multiple of 24, trim_bottom up to multiple of 24
-    trim_top = (trim_top // 24) * 24
-    trim_bottom = ((trim_bottom // 24) + 1) * 24
+    trim_top = (trim_top // 8) * 8
+    trim_bottom = ((trim_bottom // 8) + 1) * 8
     trim_bottom = min(h, trim_bottom)
 
     trimmed_h = trim_bottom - trim_top

@@ -9,7 +9,7 @@
         Change ticket layout without touching the KDS module.
     """,
     'author': 'Pizzeria El Gordo',
-    'depends': ['pos_kitchen_screen_odoo', 'pos_receipt_logo'],
+    'depends': ['pos_kitchen_screen_odoo'],
     'data': [],
     'installable': True,
     'auto_install': False,
