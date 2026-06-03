@@ -21,7 +21,7 @@
 #############################################################################
 {
     'name': "POS Restaurant Dine-in/TakeAway",
-    'version': '18.0.1.0.0',
+    'version': '19.0.1.0.0',
     'category': 'Point of Sale',
     'summary': "This module will add the options Dine-in and Take away in Odoo POS.",
     'description': """The POS user can make orders as Dine-in or Take
@@ -39,8 +39,10 @@
         'point_of_sale._assets_pos': [
             'pos_takeaway/static/src/xml/Screens/ProductScreen/ReceiptScreen/ReceiptHeader.xml',
             'pos_takeaway/static/src/xml/Screens/ProductScreen/ControlButton/TakeAwayButton.xml',
+            'pos_takeaway/static/src/xml/Screens/ProductScreen/ControlButton/RequestedTimeButton.xml',
             'pos_takeaway/static/src/js/Screens/ProductScreen/ReceiptScreen/ReceiptScreen.js',
             'pos_takeaway/static/src/js/Screens/ProductScreen/ControlButton/TakeAwayButton.js',
+            'pos_takeaway/static/src/js/Screens/ProductScreen/ControlButton/RequestedTimeButton.js',
         ],
     },
     'images': ['static/description/banner.png'],

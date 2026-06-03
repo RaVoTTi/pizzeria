@@ -29,6 +29,7 @@ class KitchenScreenDashboard extends Component {
         this.getElapsedColor = this.getElapsedColor.bind(this);
         this.getTicketType = this.getTicketType.bind(this);
         this.getPartnerName = this.getPartnerName.bind(this);
+        this.formatRequestedTime = this.formatRequestedTime.bind(this);
         this.getLineStatusLabel = this.getLineStatusLabel.bind(this);
         this.getRemainingQty = this.getRemainingQty.bind(this);
         this.getPaymentStatusLabel = this.getPaymentStatusLabel.bind(this);
@@ -137,11 +138,22 @@ class KitchenScreenDashboard extends Component {
     }
 
     getTicketType(ticket) {
-        return ticket.table_id ? 'mesa' : 'delivery';
+        return ticket.order_type || 'mesa';
     }
 
     getPartnerName(ticket) {
         return ticket.partner_name || '';
+    }
+
+    formatRequestedTime(ticket) {
+        if (!ticket.requested_time) return '';
+        const d = typeof ticket.requested_time === 'string'
+            ? new Date(ticket.requested_time.replace(' ', 'T'))
+            : new Date(ticket.requested_time);
+        if (isNaN(d.getTime())) return ticket.requested_time;
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
     }
 
     getLineStatusLabel(state) {

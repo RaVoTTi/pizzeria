@@ -1,9 +1,27 @@
 # -*- coding: utf-8 -*-
-from odoo import api, models
+from odoo import api, fields, models
 
 
 class PosOrder(models.Model):
     _inherit = "pos.order"
+
+    order_type = fields.Selection([
+        ('mesa', 'Mesa'),
+        ('delivery', 'Delivery'),
+        ('retira', 'Retira'),
+    ], string="Tipo de Orden", default='mesa')
+
+    requested_time = fields.Datetime(string="Hora Solicitada")
+
+    @api.onchange('table_id', 'partner_id')
+    def _onchange_order_type(self):
+        for order in self:
+            if order.table_id:
+                order.order_type = 'mesa'
+            elif order.partner_id and order.partner_id.street:
+                order.order_type = 'delivery'
+            else:
+                order.order_type = 'retira'
 
     @api.model_create_multi
     def create(self, vals_list):

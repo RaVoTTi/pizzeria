@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
         <field name="arch" type="xml">
             <search position="inside">
-                <filter string="Dine In" name="take_away"
+                <filter string="Dine In" name="dine_in"
                         domain="[('is_takeaway','=', False)]"/>
                 <filter string="Take Away" name="take_away"
                         domain="[('is_takeaway','=', True)]"/>

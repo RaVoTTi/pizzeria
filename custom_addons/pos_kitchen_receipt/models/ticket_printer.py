@@ -23,6 +23,15 @@ class TicketPrinter(models.AbstractModel):
         DIVIDER = "-" * 42
         CUT = ESC + "i"
 
+        order_type = ticket.order_type
+        if not order_type:
+            if ticket.table_id:
+                order_type = 'mesa'
+            elif ticket.partner_id and ticket.partner_id.street:
+                order_type = 'delivery'
+            else:
+                order_type = 'retira'
+
         lines = []
         lines.append(ESC + "@")
 
@@ -41,9 +50,10 @@ class TicketPrinter(models.AbstractModel):
         lines.append(f"{DBLHW}{header_parts}{NORM}")
 
         type_parts = []
-        if ticket.table_id:
-            lines.append(f"{DBLHW}MESA {ticket.table_id.table_number}{NORM}")
-        elif ticket.partner_id and ticket.partner_id.street:
+        if order_type == 'mesa':
+            table_num = ticket.table_id.table_number if ticket.table_id else "?"
+            lines.append(f"{DBLHW}MESA {table_num}{NORM}")
+        elif order_type == 'delivery':
             type_parts.append("DELIVERY")
         else:
             type_parts.append("RETIRA")
@@ -99,12 +109,12 @@ class TicketPrinter(models.AbstractModel):
 
         pizza_items = categories.get("Pizza", [])
         if pizza_items:
-            if ticket.table_id:
-                pizza_label = "PIZZAS SALON"
-            elif ticket.partner_id and ticket.partner_id.street:
-                pizza_label = "PIZZAS DELIVERY"
-            else:
-                pizza_label = "PIZZAS RETIRA"
+            pizza_labels = {
+                'mesa': "PIZZAS SALON",
+                'delivery': "PIZZAS DELIVERY",
+                'retira': "PIZZAS RETIRA",
+            }
+            pizza_label = pizza_labels.get(order_type, "PIZZAS SALON")
             lines.append(f"{BOLD}{pizza_label}{NORM}")
             for item in pizza_items:
                 qty = int(item["qty"]) if item["qty"] == int(item["qty"]) else item["qty"]
@@ -144,11 +154,17 @@ class TicketPrinter(models.AbstractModel):
             total_str = f"${order.amount_total:,.0f}" if order.amount_total == int(order.amount_total) else f"${order.amount_total:,.2f}"
             lines.append(f"{DBLHW}TOTAL: {total_str}{NORM}")
 
-        if ticket.partner_id and ticket.partner_id.street:
-            lines.append(DIVIDER)
-            lines.append(f"{DBLH}  {ticket.partner_id.street}{NORM}")
-            if ticket.partner_id.street2:
-                lines.append(f"{DBLH}  {ticket.partner_id.street2}{NORM}")
+        if order_type == 'delivery' and ticket.partner_id:
+            street = (ticket.partner_id.street or "").strip()
+            street2 = (ticket.partner_id.street2 or "").strip()
+            if street:
+                lines.append(DIVIDER)
+                lines.append(f"{DBLH}  {street[:38]}{NORM}")
+                if street2:
+                    lines.append(f"{DBLH}  {street2[:38]}{NORM}")
+            else:
+                lines.append(DIVIDER)
+                lines.append(f"{BOLD}  VER DIRECCION EN SISTEMA{NORM}")
 
         lines.append(ESC + "d" + "\x03")
         if with_cut:

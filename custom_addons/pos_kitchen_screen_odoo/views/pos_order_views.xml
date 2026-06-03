@@ -1,4 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Kitchen fields live on pos.kitchen.ticket now, not pos.order -->
+    <record id="view_pos_order_form_kitchen" model="ir.ui.view">
+        <field name="name">pos.order.form.kitchen</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="order_type"/>
+                <field name="requested_time" widget="datetime"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_order_tree_kitchen" model="ir.ui.view">
+        <field name="name">pos.order.tree.kitchen</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="order_type"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

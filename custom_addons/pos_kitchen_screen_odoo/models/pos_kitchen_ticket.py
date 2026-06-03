@@ -104,6 +104,12 @@ class PosKitchenTicket(models.Model):
         string="Hora solicitada",
         help="When the customer wants the order")
 
+    order_type = fields.Selection([
+        ('mesa', 'Mesa'),
+        ('delivery', 'Delivery'),
+        ('retira', 'Retira'),
+    ], string="Tipo de Orden")
+
     def _notify_kitchen(self, message_type):
         self.ensure_one()
         msg = {
@@ -293,6 +299,7 @@ class PosKitchenTicket(models.Model):
                 "sequence": ticket.sequence,
                 "state": ticket.state,
                 "payment_status": ticket.payment_status,
+                "order_type": ticket.order_type or "mesa",
                 "table_id": ticket.table_id.id if ticket.table_id else False,
                 "table_name": ticket.table_id.display_name if ticket.table_id else "",
                 "partner_name": ticket.partner_id.display_name if ticket.partner_id else "",
@@ -341,6 +348,8 @@ class PosKitchenTicket(models.Model):
             "ticket_type": "new",
             "batch_letter": "A",
             "payment_status": payment_status,
+            "order_type": pos_order.order_type,
+            "requested_time": pos_order.requested_time,
         })
         line_vals = []
         for order_line in pos_order.lines:
@@ -416,6 +425,8 @@ class PosKitchenTicket(models.Model):
                     "batch_letter": next_letter,
                     "state": "pending",
                     "payment_status": payment_status,
+                    "order_type": pos_order.order_type,
+                    "requested_time": pos_order.requested_time,
                 })
                 self.env["pos.kitchen.ticket.line"].create({
                     "ticket_id": ticket.id,
@@ -443,6 +454,8 @@ class PosKitchenTicket(models.Model):
                     "batch_letter": next_letter,
                     "state": "pending",
                     "payment_status": payment_status,
+                    "order_type": pos_order.order_type,
+                    "requested_time": pos_order.requested_time,
                 })
                 self.env["pos.kitchen.ticket.line"].create({
                     "ticket_id": ticket.id,

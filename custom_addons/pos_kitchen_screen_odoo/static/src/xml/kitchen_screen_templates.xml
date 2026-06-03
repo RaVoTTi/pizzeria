@@ -108,11 +108,11 @@
                                         <div class="kds-header-identity">
                                             <span class="kds-order-id">#<t t-esc="(ticket.sequence || 'KT-0001').replace('KT-', '')"/><t t-esc="ticket.batch_letter || 'A'"/></span>
                                             <span class="kds-header-dot">•</span>
-                                            <t t-if="partner">
-                                                <span class="kds-customer-name"><t t-esc="partner"/></span>
-                                            </t>
-                                            <t t-elif="ticketType === 'mesa'">
+                                            <t t-if="ticket.order_type === 'mesa'">
                                                 <span class="kds-customer-name">MESA <t t-esc="ticket.table_name"/></span>
+                                            </t>
+                                            <t t-elif="partner">
+                                                <span class="kds-customer-name"><t t-esc="partner"/></span>
                                             </t>
                                             <t t-else="">
                                                 <span class="kds-customer-name">RETIRO</span>
@@ -142,10 +142,10 @@
                                             </t>
                                         </div>
                                         <div class="kds-order-type-inline">
-                                            <t t-if="ticketType === 'mesa'">
+                                            <t t-if="ticket.order_type === 'mesa'">
                                                 <span class="kds-type-badge kds-type-mesa">MESA</span>
                                             </t>
-                                            <t t-elif="ticket.partner_name">
+                                            <t t-elif="ticket.order_type === 'delivery'">
                                                 <span class="kds-type-badge kds-type-delivery">DELIVERY</span>
                                             </t>
                                             <t t-else="">
@@ -153,7 +153,7 @@
                                             </t>
                                             <t t-if="ticket.requested_time">
                                                 <span class="kds-header-dot">•</span>
-                                                <span class="kds-delivery-time"><t t-esc="ticket.requested_time"/></span>
+                                                <span class="kds-delivery-time"><t t-esc="this.formatRequestedTime(ticket)"/></span>
                                             </t>
                                         </div>
                                         <span t-att-class="ticket.payment_status === 'paid' ? 'kds-payment-badge kds-payment--paid' : 'kds-payment-badge kds-payment--unpaid'">

@@ -331,3 +331,57 @@ class TestKitchenTicketWorkflow(TransactionCase):
         ])
         self.assertEqual(len(tickets), 0,
                          "No ticket for order with non-matching category")
+
+    def test_order_type_copied_to_ticket(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(1.0)
+        order.order_type = 'delivery'
+        ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
+        self.assertEqual(ticket.order_type, 'delivery',
+                         "Ticket order_type should be copied from pos.order")
+
+    def test_order_type_in_get_details(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(1.0)
+        order.order_type = 'retira'
+        ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
+
+        details = self.env["pos.kitchen.ticket"].get_details(self.pos_config.id)
+        ticket_data = next((d for d in details["tickets"] if d["id"] == ticket.id), None)
+        self.assertIsNotNone(ticket_data)
+        self.assertEqual(ticket_data["order_type"], "retira",
+                         "get_details should include order_type")
+
+    def test_delta_ticket_copies_order_type(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(2.0)
+        order.order_type = 'delivery'
+        self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
+
+        order.lines.qty = 3.0
+        tickets = self.env["pos.kitchen.ticket"].create_delta_tickets(order)
+        self.assertEqual(len(tickets), 1)
+        self.assertEqual(tickets[0].order_type, 'delivery',
+                         "Delta ticket should copy order_type from pos.order")
+
+    def test_order_type_default_mesa(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(1.0)
+        self.assertEqual(order.order_type, 'mesa',
+                         "Default order_type should be mesa")

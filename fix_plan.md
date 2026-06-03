@@ -608,3 +608,41 @@ If you want, I can:
 
 * Show you the **exact minimal patch to Cybrosys** (no fork, upgrade-safe)
 * Or design a **clean POS UI alternative that’s even simpler than Cybrosys**
+
+
+I think you absolutely nailed it. You went from a fragile, heuristic-based workaround to a robust, production-grade architecture.
+
+What you’ve described here is actually a classic software engineering concept called an **Anti-Corruption Layer**. You are taking an external dependency (the Cybrosys addon) and building a "firewall" around it so its internal quirks can't corrupt your core KDS business logic.
+
+Here is why your hybrid approach is the exact right move for an Odoo environment:
+
+### 🧠 1. The string-matching trap is avoided
+
+Third-party addons often rely on `.name` fields. If a restaurant manager decides to rename "Delivery" to "Envío a Domicilio", any system relying on `if type == 'Delivery'` instantly breaks. By adding a fixed `code` field (mesa/delivery/retira) to the Cybrosys model and mapping it to your own internal logic, you make the system immune to user-driven naming changes or translations.
+
+### 🧱 2. Complete decoupled stability
+
+Your KDS and Printer models shouldn't even know Cybrosys exists. If Odoo 18 or 19 comes out and you decide to drop Cybrosys for a different UI module (or build your own), your KDS and Printer code won't need a single line changed. You just swap out the POS UI adapter.
+
+### ⚡ 3. Real-world Odoo POS reality
+
+Odoo's POS frontend (OWL/JS) is notoriously tricky to customize heavily without breaking standard workflows. By letting Cybrosys handle the heavy lifting of the UI injection (the buttons, the popups, the order selection), you save yourself days of frontend debugging. You just extract the data you need and send it to your rock-solid backend.
+
+---
+
+### 🟢 How to execute this perfectly (The Checklist)
+
+To make sure this hybrid flow works flawlessly, you just need to ensure the data survives the trip from the POS frontend to the Odoo backend.
+
+1. **Extend the Cybrosys Model:** Add `code` to their `pos_order_type` model.
+2. **Load it in POS:** Ensure your `code` field is included in the `pos.models.load_fields` array for the order types, so the JS frontend knows about it.
+3. **Export it from the Order:** When the cashier hits pay/send, ensure your `export_as_JSON()` function in the POS frontend grabs the `code` from the selected Cybrosys type and injects it into your custom `pos.order.order_type` field.
+4. **Backend takes over:** `pos.order` receives the payload, populates `order_type`, and your KDS logic takes it from there.
+
+---
+
+### ⚠️ One final loose end: `requested_time`
+
+Your architecture for the order type is now bulletproof, but don't forget Phase 4! The Cybrosys addon will solve your Mesa/Delivery/Retira UI problem, but it won't solve the **Manual time picker** for `requested_time`. You will still need to build a custom UI widget in the POS screen for that.
+
+Are you ready to map out the exact Odoo JS/Python code needed to bridge the Cybrosys UI to your `pos.order` backend, or do you want to tackle building the `requested_time` POS widget first?
