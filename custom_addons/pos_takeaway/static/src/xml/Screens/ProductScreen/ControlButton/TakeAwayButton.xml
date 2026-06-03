@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_takeaway.TakeAwayButton" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <xpath expr="//SelectPartnerButton" position="after">
+            <t t-if="this.pos.config.module_pos_restaurant and this.pos.config.is_pos_takeaway">
+                <button
+                class="control-button btn btn-light rounded-0 fw-bolder" t-ref="TakeAway"
+                t-att-class="buttonClass"
+                t-on-click="() => this.onClick()">
+                <i class="fa fa-shopping-basket"/>Take away
+            </button>
+            </t>
+        </xpath>
+    </t>
+</templates>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Extending the Receipt Header to add the Dine-in or Takeaway label on it.
+  If it is a takeaway and the generate token is enabled, it will add the
+  token to the receipt. -->
+<templates id="template" xml:space="preserve">
+    <t t-name="TakeAwayReceipt" t-inherit="point_of_sale.ReceiptHeader"
+       t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[hasclass('cashier')]" position="before">
+            <t t-if='!props.data.DineIn'>
+                <div>--------------------------------</div>
+                <div>
+                    <span style="font-weight:bold;font-size: 13px;">
+                        Take Away
+                    </span>
+                </div>
+                <t t-if='props.data.token_number'>
+                    <div>--------------------------------</div>
+                    <div>
+                        <span style="font-weight:bold;font-size: 13px;">
+                            Token Number : <t t-esc="props.data.token_number"/>
+                        </span>
+                    </div>
+                </t>
+            </t>
+            <t t-if="props.data.DineIn">
+                <div>--------------------------------</div>
+                <div>
+                    <span style="font-weight:bold;font-size: 13px;">
+                        Dine-In
+                    </span>
+                </div>
+            </t>
+        </xpath>
+        <xpath expr="//t[@t-if='props.data.table']" position="replace">
+            <t t-if="props.data.DineIn">
+                <t t-if="props.data.table">Table <t t-esc="props.data.table"/></t>
+            </t>
+        </xpath>
+        <xpath expr="//t[@t-if='props.data.table and props.data.customer_count']" position="replace">
+            <t t-if="props.data.DineIn">
+                <t t-if="props.data.table and props.data.customer_count ">, Guests: <t t-esc="props.data.customer_count" /></t>
+            </t>
+        </xpath>
+    </t>
+</templates>

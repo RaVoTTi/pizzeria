@@ -35,7 +35,7 @@ for product_categ_name, pos_categ_name, is_salon in pos_categ_mapping:
         products.write({'pos_categ_ids': [(6, 0, [pos_categ.id])]})
         print(f"    - {len(products)} products")
 
-delivery_prod = env['product.template'].search([('name', 'in', ['Costo de Envío', 'Delivery', 'Envío Cerca', 'Envío Lejos', 'Envío Procrear'])], limit=1)
+delivery_prod = env['product.template'].search([('name', 'in', ['Costo de Envío', 'Delivery', 'Envio Cerca', 'Envio Lejos', 'Envio Procrear'])], limit=1)
 delivery_categ = env['pos.category'].search([('name', '=', 'Delivery')], limit=1)
 if not delivery_categ:
     delivery_categ = env['pos.category'].create({'name': 'Delivery'})

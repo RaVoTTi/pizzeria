@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 import subprocess
 
@@ -71,12 +72,15 @@ class TicketPrinter(models.AbstractModel):
         lines.append(DIVIDER)
 
         all_lines = self._get_all_order_lines(ticket)
-        categories = {"Pizza": [], "Empanada": [], "Bebida": [], "Otro": []}
+        categories = {"Pizza": [], "Empanada": [], "Bebida": [], "Envio": [], "Otro": []}
 
         for line in all_lines:
+            qty = line.get("qty_total", 1)
+            if qty == 0:
+                continue
             cat = line.get("product_category", "")
             entry = {
-                "qty": line.get("qty_total", 1),
+                "qty": qty,
                 "name": line.get("full_product_name", ""),
                 "note": line.get("note", ""),
                 "state": line.get("state", "pending"),
@@ -89,6 +93,7 @@ class TicketPrinter(models.AbstractModel):
         cat_order = [
             ("Empanada", "EMPANADAS"),
             ("Bebida", "BEBIDAS"),
+            ("Envio", "ENVIO"),
             ("Otro", "OTROS"),
         ]
 
@@ -106,8 +111,9 @@ class TicketPrinter(models.AbstractModel):
                 name = self._truncate_name(item["name"].upper(), 21)
                 qty_str = f"{qty}x"
                 lines.append(f"{DBLH} {qty_str:>3} {name}{NORM}")
-                if item["note"]:
-                    lines.append(f"     {REV_ON} {item['note'][:28].upper()} {REV_OFF}")
+                note_texts = self._extract_note_text(item["note"])
+                for nt in note_texts:
+                    lines.append(f"     > {nt[:28].upper()}")
             lines.append("")
 
         for cat_key, cat_label in cat_order:
@@ -120,8 +126,9 @@ class TicketPrinter(models.AbstractModel):
                 name = self._truncate_name(item["name"].upper(), 21)
                 qty_str = f"{qty}x"
                 lines.append(f"{DBLH} {qty_str:>3} {name}{NORM}")
-                if item["note"]:
-                    lines.append(f"     {REV_ON} {item['note'][:28].upper()} {REV_OFF}")
+                note_texts = self._extract_note_text(item["note"])
+                for nt in note_texts:
+                    lines.append(f"     > {nt[:28].upper()}")
             lines.append("")
 
         order = ticket.origin_pos_order_id
@@ -131,17 +138,17 @@ class TicketPrinter(models.AbstractModel):
             for part in order.general_customer_note.split('\n')[:3]:
                 lines.append(f"  {part[:38].upper()}")
 
-        if ticket.partner_id and ticket.partner_id.street:
-            lines.append(DIVIDER)
-            lines.append(f"{BOLD}DIRECCION:{NORM} {ticket.partner_id.street}")
-            if ticket.partner_id.street2:
-                lines.append(f"  {ticket.partner_id.street2}")
-
         lines.append(DIVIDER)
         order = ticket.origin_pos_order_id
         if order and hasattr(order, 'amount_total') and order.amount_total:
             total_str = f"${order.amount_total:,.0f}" if order.amount_total == int(order.amount_total) else f"${order.amount_total:,.2f}"
             lines.append(f"{DBLHW}TOTAL: {total_str}{NORM}")
+
+        if ticket.partner_id and ticket.partner_id.street:
+            lines.append(DIVIDER)
+            lines.append(f"{DBLH}  {ticket.partner_id.street}{NORM}")
+            if ticket.partner_id.street2:
+                lines.append(f"{DBLH}  {ticket.partner_id.street2}{NORM}")
 
         lines.append(ESC + "d" + "\x03")
         if with_cut:
@@ -213,6 +220,27 @@ class TicketPrinter(models.AbstractModel):
         return all_lines
 
     @staticmethod
+    def _extract_note_text(note_value):
+        if not note_value:
+            return []
+        if isinstance(note_value, str):
+            try:
+                parsed = json.loads(note_value)
+            except (json.JSONDecodeError, TypeError):
+                stripped = note_value.strip()
+                return [stripped] if stripped else []
+        else:
+            parsed = note_value
+        if isinstance(parsed, list):
+            parts = [item.get("text", "") for item in parsed if isinstance(item, dict) and item.get("text")]
+            return parts
+        if isinstance(parsed, dict):
+            text = parsed.get("text", "")
+            return [text] if text else []
+        stripped = str(parsed).strip()
+        return [stripped] if stripped else []
+
+    @staticmethod
     def _truncate_name(name, max_len=30):
         if len(name) <= max_len:
             return name
@@ -229,13 +257,17 @@ class TicketPrinter(models.AbstractModel):
                 return "Pizza"
             if "empanada" in cat_name:
                 return "Empanada"
-            if "cerveza" in cat_name or "bebida" in cat_name or "delivery" in cat_name:
+            if "delivery" in cat_name or "envio" in cat_name:
+                return "Envio"
+            if "cerveza" in cat_name or "bebida" in cat_name:
                 return "Bebida"
         name = (product.name or "").lower()
         if "pizza" in name or "panini" in name:
             return "Pizza"
         if "empanada" in name:
             return "Empanada"
+        if "envio" in name or "delivery" in name:
+            return "Envio"
         if "cerveza" in name or "bebida" in name:
             return "Bebida"
         return "Otro"
