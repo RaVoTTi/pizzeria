@@ -1,0 +1,6 @@
+id,name,categ_id/id,detailed_type,uom_name,standard_price,list_price,image_1920
+doc_emp_carne_s,[S] Docena Empanada Carne,cat_emp,product,Unidades,0,19000,
+doc_emp_pollo_s,[S] Docena Empanada Pollo,cat_emp,product,Unidades,0,19000,
+doc_emp_jyq_s,[S] Docena Empanada Jamón y Queso,cat_emp,product,Unidades,0,22000,
+doc_emp_matambre_s,[S] Docena Empanada Matambrito,cat_emp,product,Unidades,0,30000,
+doc_emp_cheesa_s,[S] Docena Empanada Cheeseburger,cat_emp,product,Unidades,0,24000,

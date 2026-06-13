@@ -37,6 +37,7 @@
     ],
     'assets': {
         'point_of_sale._assets_pos': [
+            'pos_takeaway/static/src/css/pos_takeaway.css',
             'pos_takeaway/static/src/xml/Screens/ProductScreen/ReceiptScreen/ReceiptHeader.xml',
             'pos_takeaway/static/src/xml/Screens/ProductScreen/ControlButton/TakeAwayButton.xml',
             'pos_takeaway/static/src/xml/Screens/ProductScreen/ControlButton/RequestedTimeButton.xml',

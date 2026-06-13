@@ -169,6 +169,27 @@ for row in salon_emp_rows:
     salon_name = row['name']
     create_salon_recipe(env, salon_name, mostrador_name, product_by_name)
 
+# Panini salon recipes
+salon_panini_rows = csv_rows('paninis_salon.csv')
+for row in salon_panini_rows:
+    mostrador_name = row['name'].replace('[S] ', '')
+    salon_name = row['name']
+    create_salon_recipe(env, salon_name, mostrador_name, product_by_name)
+
+# Empanada ½ Docena salon recipes
+salon_mdoc_emp_rows = csv_rows('empanadas_media_docena_salon.csv')
+for row in salon_mdoc_emp_rows:
+    mostrador_name = row['name'].replace('[S] ', '')
+    salon_name = row['name']
+    create_salon_recipe(env, salon_name, mostrador_name, product_by_name)
+
+# Empanada Docena salon recipes
+salon_doc_emp_rows = csv_rows('empanadas_docena_salon.csv')
+for row in salon_doc_emp_rows:
+    mostrador_name = row['name'].replace('[S] ', '')
+    salon_name = row['name']
+    create_salon_recipe(env, salon_name, mostrador_name, product_by_name)
+
 env.cr.commit()
 
 # ===========================================================================
@@ -206,7 +227,7 @@ salon_errors = 0
 salon_ok = 0
 salon_missing = 0
 
-salon_csv_files = ['pizzas_salon.csv', 'mitades_salon.csv', 'empanadas_salon.csv']
+salon_csv_files = ['pizzas_salon.csv', 'mitades_salon.csv', 'empanadas_salon.csv', 'paninis_salon.csv', 'empanadas_media_docena_salon.csv', 'empanadas_docena_salon.csv']
 for csv_file in salon_csv_files:
     salon_rows = csv_rows(csv_file)
     for row in salon_rows:

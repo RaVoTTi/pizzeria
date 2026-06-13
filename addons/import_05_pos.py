@@ -8,11 +8,13 @@ pos_categ_mapping = [
     ('Empanadas', '[S] Empanadas', True),
     ('Pizzas', '[S] Pizzas', True),
     ('Mitades', '[S] Mitades', True),
+    ('Paninis', '[S] Paninis', True),
     ('Cerveza Barra', 'Cerveza', False),
     ('Bebidas sin Alcohol', 'Bebidas', False),
     ('Empanadas', 'Empanadas', False),
     ('Pizzas', 'Pizzas', False),
     ('Mitades', 'Mitades', False),
+    ('Paninis', 'Paninis', False),
 ]
 
 all_categ_ids = []
@@ -35,15 +37,15 @@ for product_categ_name, pos_categ_name, is_salon in pos_categ_mapping:
         products.write({'pos_categ_ids': [(6, 0, [pos_categ.id])]})
         print(f"    - {len(products)} products")
 
-delivery_prod = env['product.template'].search([('name', 'in', ['Costo de Envío', 'Delivery', 'Envio Cerca', 'Envio Lejos', 'Envio Procrear'])], limit=1)
+delivery_prods = env['product.template'].search([('name', 'in', ['Costo de Envío', 'Delivery', 'Envio Cerca', 'Envio Lejos', 'Envio Procrear'])])
 delivery_categ = env['pos.category'].search([('name', '=', 'Delivery')], limit=1)
 if not delivery_categ:
     delivery_categ = env['pos.category'].create({'name': 'Delivery'})
     print(f"  Created POS category: Delivery")
 all_categ_ids.append(delivery_categ.id)
-if delivery_prod:
-    delivery_prod.write({'pos_categ_ids': [(6, 0, [delivery_categ.id])], 'available_in_pos': True})
-    print(f"  Assigned Delivery product")
+if delivery_prods:
+    delivery_prods.write({'pos_categ_ids': [(6, 0, [delivery_categ.id])], 'available_in_pos': True})
+    print(f"  Assigned {len(delivery_prods)} Delivery products")
 
 pos_products = env['product.template'].search([
     ('list_price', '>', 0), ('type', '!=', 'service'), ('available_in_pos', '=', False),

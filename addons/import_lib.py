@@ -78,6 +78,8 @@ def get_categ_id(env, categ_ref, cat_ids):
         'cat_pizzas': 'Pizzas',
         'cat_delivery': 'Deliveries',
         'cat_emp': 'Empanadas',
+        'cat_paninis': 'Paninis',
+        'cat_postres': 'Postres',
         'cat_all': 'Todos',
     }
     name = by_name.get(categ_ref)

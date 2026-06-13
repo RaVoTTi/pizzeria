@@ -1,0 +1,9 @@
+.pos .product-screen .control-buttons {
+    flex-wrap: wrap;
+}
+
+.pos .product-screen .control-buttons .control-button {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    flex-shrink: 0;
+}

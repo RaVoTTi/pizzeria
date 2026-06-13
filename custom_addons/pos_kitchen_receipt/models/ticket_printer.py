@@ -72,9 +72,10 @@ class TicketPrinter(models.AbstractModel):
                 type_parts.append(tl)
 
         if ticket.requested_time:
-            type_parts.append(ticket.requested_time.strftime("%H:%M"))
-        elif ticket.create_date:
-            type_parts.append(ticket.create_date.strftime("%H:%M"))
+            type_parts.append(f"Entrega: {ticket.requested_time.strftime('%H:%M')}")
+
+        if ticket.create_date:
+            type_parts.append(f"Creado: {ticket.create_date.strftime('%H:%M')}")
 
         if type_parts:
             lines.append(f"{DBLH}{' | '.join(type_parts)}{NORM}")

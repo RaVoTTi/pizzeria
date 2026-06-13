@@ -118,11 +118,10 @@
                                                 <span class="kds-customer-name">RETIRO</span>
                                             </t>
                                         </div>
-                                        <div class="kds-elapsed"
-                                             t-att-class="elapsedColor === 'red' ? 'kds-elapsed kds-elapsed--red' : elapsedColor === 'amber' ? 'kds-elapsed kds-elapsed--amber' : 'kds-elapsed kds-elapsed--green'">
-                                            <span class="kds-elapsed-num"><t t-esc="elapsedMins"/></span>
-                                            <span class="kds-elapsed-unit">min</span>
-                                        </div>
+                                        <t t-set="timeDisp" t-value="this.formatTimeDisplay(ticket)"/>
+                                        <span t-att-class="'kds-time-badge kds-time--' + elapsedColor + (timeDisp.hasRequested ? ' kds-time--requested' : '')">
+                                            <t t-esc="timeDisp.text"/>
+                                        </span>
                                     </div>
 
                                     <!-- Line 2: Ticket Type • Order Type • Payment -->
@@ -150,10 +149,6 @@
                                             </t>
                                             <t t-else="">
                                                 <span class="kds-type-badge kds-type-pickup">RETIRO</span>
-                                            </t>
-                                            <t t-if="ticket.requested_time">
-                                                <span class="kds-header-dot">•</span>
-                                                <span class="kds-delivery-time"><t t-esc="this.formatRequestedTime(ticket)"/></span>
                                             </t>
                                         </div>
                                         <span t-att-class="ticket.payment_status === 'paid' ? 'kds-payment-badge kds-payment--paid' : 'kds-payment-badge kds-payment--unpaid'">

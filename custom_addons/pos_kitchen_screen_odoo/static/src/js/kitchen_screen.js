@@ -30,6 +30,7 @@ class KitchenScreenDashboard extends Component {
         this.getTicketType = this.getTicketType.bind(this);
         this.getPartnerName = this.getPartnerName.bind(this);
         this.formatRequestedTime = this.formatRequestedTime.bind(this);
+        this.formatTimeDisplay = this.formatTimeDisplay.bind(this);
         this.getLineStatusLabel = this.getLineStatusLabel.bind(this);
         this.getRemainingQty = this.getRemainingQty.bind(this);
         this.getPaymentStatusLabel = this.getPaymentStatusLabel.bind(this);
@@ -154,6 +155,15 @@ class KitchenScreenDashboard extends Component {
         const hours = String(d.getHours()).padStart(2, '0');
         const minutes = String(d.getMinutes()).padStart(2, '0');
         return `${hours}:${minutes}`;
+    }
+
+    formatTimeDisplay(ticket) {
+        const mins = this.getElapsedMinutes(ticket);
+        const requested = this.formatRequestedTime(ticket);
+        if (requested) {
+            return { text: `${mins} MIN · ${requested}`, hasRequested: true };
+        }
+        return { text: `${mins} MIN`, hasRequested: false };
     }
 
     getLineStatusLabel(state) {

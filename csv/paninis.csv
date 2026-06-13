@@ -1,0 +1,4 @@
+id,name,categ_id/id,detailed_type,uom_name,standard_price,list_price,image_1920
+pan_clasico,Panini Clásico,cat_paninis,product,Unidades,0,15000,
+pan_caprese,Panini Caprese,cat_paninis,product,Unidades,0,15000,
+pan_gordo,Panini del Gordo,cat_paninis,product,Unidades,0,17000,

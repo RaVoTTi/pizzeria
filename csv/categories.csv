@@ -11,3 +11,5 @@ cat_birra_venta,Cerveza Barra,cat_venta
 cat_pizzas,Pizzas,cat_venta
 cat_delivery,Deliveries,cat_venta
 cat_emp,Empanadas,cat_venta
+cat_paninis,Paninis,cat_venta
+cat_postres,Postres,cat_venta
