@@ -149,7 +149,7 @@ class KitchenScreenDashboard extends Component {
     formatRequestedTime(ticket) {
         if (!ticket.requested_time) return '';
         const d = typeof ticket.requested_time === 'string'
-            ? new Date(ticket.requested_time.replace(' ', 'T'))
+            ? new Date(ticket.requested_time.replace(' ', 'T') + 'Z')
             : new Date(ticket.requested_time);
         if (isNaN(d.getTime())) return ticket.requested_time;
         const hours = String(d.getHours()).padStart(2, '0');

@@ -2,20 +2,36 @@
 <templates id="template" xml:space="preserve">
     <t t-name="pos_takeaway.RequestedTimeButton" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
         <xpath expr="//SelectPartnerButton" position="after">
-            <div class="d-flex align-items-center gap-1 ms-1 ps-2 border-start border-secondary">
-                <button
-                    t-att-class="requestedTimeClass"
-                    t-on-click="() => this.setRequestedTime()"
-                    title="Hora de entrega">
-                    <i class="fa fa-clock-o"/>
-                    <t t-if="requestedTimeDisplay">
-                        <t t-esc="requestedTimeDisplay"/>
-                    </t>
-                    <t t-else="">
-                        Hora
-                    </t>
-                </button>
-            </div>
+            <t t-if="!props.showRemainingButtons">
+                <div class="d-flex align-items-center gap-1 ms-1 ps-2 border-start border-secondary">
+                    <button
+                        t-att-class="requestedTimeClass"
+                        t-on-click="() => this.setRequestedTime()"
+                        title="Hora de entrega">
+                        <i class="fa fa-clock-o"/>
+                        <t t-if="requestedTimeDisplay">
+                            <t t-esc="requestedTimeDisplay"/>
+                        </t>
+                        <t t-else="">
+                            Hora
+                        </t>
+                    </button>
+                </div>
+            </t>
+        </xpath>
+        <xpath expr="//div[hasclass('control-buttons-modal')]" position="inside">
+            <button
+                t-att-class="requestedTimeClass"
+                t-on-click="() => this.setRequestedTime()"
+                title="Hora de entrega">
+                <i class="fa fa-clock-o"/>
+                <t t-if="requestedTimeDisplay">
+                    <t t-esc="requestedTimeDisplay"/>
+                </t>
+                <t t-else="">
+                    Hora
+                </t>
+            </button>
         </xpath>
     </t>
 </templates>

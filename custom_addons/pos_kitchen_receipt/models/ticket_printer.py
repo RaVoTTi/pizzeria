@@ -2,15 +2,25 @@
 import json
 import logging
 import subprocess
+from datetime import timezone, timedelta
 
 from odoo import models
 
 _logger = logging.getLogger(__name__)
 
+LOCAL_TZ = timezone(timedelta(hours=-3))
+
 
 class TicketPrinter(models.AbstractModel):
     _name = "kitchen.ticket.printer"
     _description = "Kitchen ticket ESC/POS formatting and printing"
+
+    def _to_local_time(self, dt):
+        if not dt:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(LOCAL_TZ)
 
     def format_ticket_escpos(self, ticket, with_cut=True):
         ESC = "\x1b"
@@ -72,10 +82,12 @@ class TicketPrinter(models.AbstractModel):
                 type_parts.append(tl)
 
         if ticket.requested_time:
-            type_parts.append(f"Entrega: {ticket.requested_time.strftime('%H:%M')}")
+            local_time = self._to_local_time(ticket.requested_time)
+            type_parts.append(f"Entrega: {local_time.strftime('%H:%M')}")
 
         if ticket.create_date:
-            type_parts.append(f"Creado: {ticket.create_date.strftime('%H:%M')}")
+            local_time = self._to_local_time(ticket.create_date)
+            type_parts.append(f"Creado: {local_time.strftime('%H:%M')}")
 
         if type_parts:
             lines.append(f"{DBLH}{' | '.join(type_parts)}{NORM}")

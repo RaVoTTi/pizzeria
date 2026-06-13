@@ -1,8 +1,8 @@
-.pos .product-screen .control-buttons {
+.pos .product-screen .control-buttons:not(.control-buttons-modal) {
     flex-wrap: wrap;
 }
 
-.pos .product-screen .control-buttons .control-button {
+.pos .product-screen .control-buttons:not(.control-buttons-modal) .control-button {
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;
     flex-shrink: 0;

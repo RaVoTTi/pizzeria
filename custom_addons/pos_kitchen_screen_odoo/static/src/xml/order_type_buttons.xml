@@ -2,6 +2,19 @@
 <templates id="template" xml:space="preserve">
     <t t-name="pos_kitchen_screen_odoo.OrderTypeButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
         <xpath expr="//SelectPartnerButton" position="after">
+            <t t-if="!props.showRemainingButtons">
+                <button t-att-class="mesaClass" t-on-click="() => this.setOrderType('mesa')">
+                    <i class="fa fa-cutlery"/> Mesa
+                </button>
+                <button t-att-class="deliveryClass" t-on-click="() => this.setOrderType('delivery')">
+                    <i class="fa fa-motorcycle"/> Delivery
+                </button>
+                <button t-att-class="retiraClass" t-on-click="() => this.setOrderType('retira')">
+                    <i class="fa fa-shopping-bag"/> Retira
+                </button>
+            </t>
+        </xpath>
+        <xpath expr="//div[hasclass('control-buttons-modal')]" position="inside">
             <button t-att-class="mesaClass" t-on-click="() => this.setOrderType('mesa')">
                 <i class="fa fa-cutlery"/> Mesa
             </button>

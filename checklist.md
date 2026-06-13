@@ -1,12 +1,12 @@
 POS / Orders
 
-[ ] After clicking the three dots, show Table Number in the delivery/order column.
+[x] After clicking the three dots, show Table Number in the delivery/order column.
 
-[ ] Review what happens when an order is modified and then canceled.
+[x] Review what happens when an order is modified and then canceled.
 
 [x] Add desserts to the menu/products, it should be a new category like panini
 
-[ ] Verify order movement/status flow from server → kitchen → delivery/completed (verify exact requirement).
+[x] Verify order movement/status flow from server → kitchen → delivery/completed (verify exact requirement).
 
 [x] Change the wording of "Price Paid" because it currently only means the order was confirmed, not actually paid(maybe the translation to spanish is weird)
 
@@ -23,7 +23,7 @@ Delivery
 
 POS / Printing
 
-[ ] Add ability to print directly from POS, I think that it is there the from the kds the printing function, works well. i think that "Print Complete Receipt" or "imprimir recibo completo" option doesn't call my custom module. Idk check that. 
+[x] Add ability to print directly from POS, I think that it is there the from the kds the printing function, works well. i think that "Print Complete Receipt" or "imprimir recibo completo" option doesn't call my custom module. Idk check that. 
 
 
 Products & Menu
@@ -52,8 +52,7 @@ Kitchen / Oven
 
 
 
-I need to fix the time on the pos because when i put the time, it changed for example 22:30 to 18:30.on the kds works,
-On the pos when, I should be able to print the ticket like it is done on the kds, because on the pos it calls not the printer.
+[x] Fix POS time bug (22:30 showed as 18:30 due to UTC conversion) - Standardized: store UTC, display local
 
-the added employees are odoo users that can use the pos or are only clients.
+[x] Employees are Odoo users with POS PIN access (not just clients)
 
