@@ -182,7 +182,7 @@ class KitchenScreenDashboard extends Component {
     }
 
     getPaymentStatusLabel(status) {
-        return status === 'paid' ? _t('PAGADO') : _t('NO PAGO');
+        return status === 'paid' ? _t('PAGADO') : _t('FALTA PAGAR');
     }
 
     getModifierClass(note) {

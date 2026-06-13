@@ -9,12 +9,14 @@ pos_categ_mapping = [
     ('Pizzas', '[S] Pizzas', True),
     ('Mitades', '[S] Mitades', True),
     ('Paninis', '[S] Paninis', True),
+    ('Postres', '[S] Postres', True),
     ('Cerveza Barra', 'Cerveza', False),
     ('Bebidas sin Alcohol', 'Bebidas', False),
     ('Empanadas', 'Empanadas', False),
     ('Pizzas', 'Pizzas', False),
     ('Mitades', 'Mitades', False),
     ('Paninis', 'Paninis', False),
+    ('Postres', 'Postres', False),
 ]
 
 all_categ_ids = []

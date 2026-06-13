@@ -152,7 +152,7 @@
                                             </t>
                                         </div>
                                         <span t-att-class="ticket.payment_status === 'paid' ? 'kds-payment-badge kds-payment--paid' : 'kds-payment-badge kds-payment--unpaid'">
-                                            <t t-esc="ticket.payment_status === 'paid' ? 'PAGADO' : 'NO PAGO'"/>
+                                            <t t-esc="ticket.payment_status === 'paid' ? 'PAGADO' : 'FALTA PAGAR'"/>
                                         </span>
                                     </div>
                                 </div>

@@ -59,7 +59,7 @@ class TicketPrinter(models.AbstractModel):
             type_parts.append("RETIRA")
 
         if ticket.payment_status != "paid" and ticket.ticket_type != "cancellation":
-            type_parts.append("NO PAGADO")
+            type_parts.append("FALTA PAGAR")
 
         if ticket.ticket_type != "new":
             type_labels = {

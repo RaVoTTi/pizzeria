@@ -4,11 +4,11 @@ POS / Orders
 
 [ ] Review what happens when an order is modified and then canceled.
 
-[ ] Add desserts to the menu/products, it should be a new category like panini
+[x] Add desserts to the menu/products, it should be a new category like panini
 
 [ ] Verify order movement/status flow from server → kitchen → delivery/completed (verify exact requirement).
 
-[ ] Change the wording of "Price Paid" because it currently only means the order was confirmed, not actually paid(maybe the translation to spanish is weird)
+[x] Change the wording of "Price Paid" because it currently only means the order was confirmed, not actually paid(maybe the translation to spanish is weird)
 
 
 Delivery
@@ -17,7 +17,7 @@ Delivery
 
 
 
-[ ] Fix time / timezone configuration (business hours). It should be the timezone of argentina
+[x] Fix time / timezone configuration (business hours). It should be the timezone of argentina
 
 
 
@@ -35,12 +35,15 @@ Products & Menu
 
 Branding
 
-[ ] Add pizzeria logo.
+[x] Add pizzeria logo.
+
+
+[] change the colors of the system for the colors, on @branding/colors.md
 
 
 Users & Permissions
 
-[ ] Create users and roles import from CSV (similar to product import). there is a csv called employees.csv
+[x] Create users and roles import from CSV (similar to product import). there is a csv called employees.csv
 
 
 Kitchen / Oven
@@ -49,4 +52,8 @@ Kitchen / Oven
 
 
 
+I need to fix the time on the pos because when i put the time, it changed for example 22:30 to 18:30.on the kds works,
+On the pos when, I should be able to print the ticket like it is done on the kds, because on the pos it calls not the printer.
+
+the added employees are odoo users that can use the pos or are only clients.
 

@@ -50,7 +50,8 @@ patch(ControlButtons.prototype, {
                 const minutes = parseInt(match[2], 10);
                 if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
                     const now = new Date();
-                    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+                    const localDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+                    const dateStr = localDate.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
                     order.requested_time = dateStr;
                 } else {
                     alert('Hora inválida. Use formato HH:MM (00:00 - 23:59)');
