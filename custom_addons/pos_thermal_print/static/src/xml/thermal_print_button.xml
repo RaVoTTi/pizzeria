@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_thermal_print.ReceiptScreen" t-inherit="point_of_sale.ReceiptScreen" t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('print')][last()]" position="after">
+            <button class="button print btn btn-lg btn-secondary w-100 py-3" t-on-click="() => doThermalPrint.call()">
+                <i t-attf-class="fa {{doThermalPrint.status === 'loading' ? 'fa-fw fa-spin fa-circle-o-notch' : 'fa-print'}} me-1" />Imprimir Ticket
+            </button>
+        </xpath>
+    </t>
+</templates>

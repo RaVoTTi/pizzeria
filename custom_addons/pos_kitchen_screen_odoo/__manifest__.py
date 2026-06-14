@@ -65,7 +65,6 @@
             'pos_kitchen_screen_odoo/static/src/js/order_pay.js',
             'pos_kitchen_screen_odoo/static/src/js/order_model.js',
             'pos_kitchen_screen_odoo/static/src/js/order_type_buttons.js',
-            'pos_kitchen_screen_odoo/static/src/js/receipt_print.js',
             'pos_kitchen_screen_odoo/static/src/xml/order_type_buttons.xml',
         ],
     },

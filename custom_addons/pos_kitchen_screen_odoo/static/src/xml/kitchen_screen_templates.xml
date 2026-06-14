@@ -79,7 +79,7 @@
                             t-att-class="state.stages === 'delivered' ? 'kds-tab kds-tab--active' : 'kds-tab'"
                             t-att-data-state="'delivered'"
                             t-on-click="() => this.deliveredStage()">
-                        Entregado
+                        <t t-esc="'Delivery'"/>
                         <span class="kds-count-badge"><t t-esc="state.delivered_count"/></span>
                     </button>
                 </div>

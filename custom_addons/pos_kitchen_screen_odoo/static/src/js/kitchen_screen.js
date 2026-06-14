@@ -436,7 +436,7 @@ class KitchenScreenDashboard extends Component {
 
         const actionLabel = next === 'cooking' ? _t('al Horno')
             : next === 'ready' ? _t('Listo')
-            : next === 'delivered' ? _t('Entregado')
+            : next === 'delivered' ? 'Delivery'
             : next;
         this._showUndoToast(_t(`Ticket movido a ${actionLabel}`), { undo: undoAction });
 

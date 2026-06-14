@@ -7,7 +7,7 @@
                     <i class="fa fa-cutlery"/> Mesa
                 </button>
                 <button t-att-class="deliveryClass" t-on-click="() => this.setOrderType('delivery')">
-                    <i class="fa fa-motorcycle"/> Delivery
+                    <i class="fa fa-motorcycle"/> <t t-esc="'Delivery'"/>
                 </button>
                 <button t-att-class="retiraClass" t-on-click="() => this.setOrderType('retira')">
                     <i class="fa fa-shopping-bag"/> Retira
@@ -19,7 +19,7 @@
                 <i class="fa fa-cutlery"/> Mesa
             </button>
             <button t-att-class="deliveryClass" t-on-click="() => this.setOrderType('delivery')">
-                <i class="fa fa-motorcycle"/> Delivery
+                <i class="fa fa-motorcycle"/> <t t-esc="'Delivery'"/>
             </button>
             <button t-att-class="retiraClass" t-on-click="() => this.setOrderType('retira')">
                 <i class="fa fa-shopping-bag"/> Retira

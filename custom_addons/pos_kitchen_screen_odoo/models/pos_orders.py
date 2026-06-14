@@ -60,15 +60,3 @@ class PosOrder(models.Model):
             return False
         tickets = self.env["pos.kitchen.ticket"].create_delta_tickets(pos_order)
         return [t.id for t in tickets] if tickets else False
-
-    def print_customer_receipt(self):
-        self.ensure_one()
-        ticket = self.env["pos.kitchen.ticket"].search([
-            ("origin_pos_order_id", "=", self.id),
-            ("ticket_type", "=", "new"),
-        ], limit=1)
-        if not ticket:
-            ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(self)
-        if ticket:
-            return ticket.print_ticket()
-        return False

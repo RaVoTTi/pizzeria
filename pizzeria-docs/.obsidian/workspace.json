@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "b780ecb6a7b71508",
+        "id": "1f239a1a90f2ca49",
         "type": "tabs",
         "children": [
           {
-            "id": "0a5db5d2ddceafbe",
+            "id": "a525f6c720f93dc7",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "plan-integral.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "plan-integral"
+              "title": "New tab"
             }
           }
         ]
@@ -94,7 +90,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "plan-integral.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +99,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for plan-integral"
+              "title": "Backlinks"
             }
           },
           {
@@ -113,12 +108,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "plan-integral.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from plan-integral"
+              "title": "Outgoing links"
             }
           },
           {
@@ -156,13 +150,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "plan-integral.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of plan-integral"
+              "title": "Outline"
             }
           }
         ]
@@ -183,10 +176,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "0a5db5d2ddceafbe",
+  "active": "a525f6c720f93dc7",
   "lastOpenFiles": [
-    "project-plan-20days.md",
     "plan-integral.md",
+    "project-plan-20days.md",
     "checklist.md",
     "Untitled.md",
     "Welcome.md"

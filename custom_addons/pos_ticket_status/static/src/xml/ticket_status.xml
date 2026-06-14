@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_ticket_status.TicketScreen" t-inherit="point_of_sale.TicketScreen" t-inherit-mode="extension">
+        <xpath expr="//table//td[@class='align-middle text-end']" position="replace">
+            <td class="align-middle text-end">
+                <div t-att-class="getBadgeColorClass(order)" t-att-style="getBadgeStyle(order)">
+                    <t t-esc="getStatus(order)"/>
+                </div>
+            </td>
+        </xpath>
+        <xpath expr="//div[@class='mobileOrderList order-row d-flex flex-row ps-1']//div[@class='p-2 d-flex flex-column flex-grow-1 justify-content-center align-items-end']" position="replace">
+            <div class="p-2 d-flex flex-column flex-grow-1 justify-content-center align-items-end">
+                <div class="fw-bolder"><t t-esc="getTotal(order)"/></div>
+                <div t-att-class="getBadgeColorClass(order)" t-att-style="getBadgeStyle(order)">
+                    <t t-esc="getStatus(order)"/>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>
