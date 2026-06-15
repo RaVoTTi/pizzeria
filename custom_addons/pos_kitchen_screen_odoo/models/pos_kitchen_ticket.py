@@ -3,7 +3,6 @@ import json
 import logging
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -26,21 +25,11 @@ def _extract_note_text(note_value):
         return parsed.get("text", "")
     return str(parsed).strip()
 
-VALID_TRANSITIONS = {
-    "pending": {"cooking", "cancelled"},
-    "cooking": {"ready", "cancelled"},
-    "waiting": {"cooking", "cancelled"},
-    "ready": {"delivered", "cancelled"},
-    "delivered": set(),
-    "cancelled": set(),
-}
-
 LINE_TRANSITIONS = {
-    "pending": {"cooking"},
-    "cooking": {"ready", "cancelled"},
-    "waiting": {"cooking", "cancelled"},
-    "ready": {"cancelled"},
-    "cancelled": set(),
+    "pending": {"cooking", "cancelled"},
+    "cooking": {"pending", "ready", "cancelled"},
+    "ready": {"cooking", "cancelled"},
+    "cancelled": {"pending"},
 }
 
 
@@ -82,7 +71,6 @@ class PosKitchenTicket(models.Model):
     state = fields.Selection([
         ("pending", "Pendiente"),
         ("cooking", "En Horno"),
-        ("waiting", "Esperando Espacio"),
         ("ready", "Listo"),
         ("delivered", "Entregado"),
         ("cancelled", "Cancelado"),
@@ -119,59 +107,63 @@ class PosKitchenTicket(models.Model):
             "config_id": self.pos_config_id.id,
         }
         channel = f"pos_kitchen.{self.pos_config_id.id}"
+        _logger.info("[KITCHEN] Bus notify channel=%s message=%s ticket_id=%s", channel, message_type, self.id)
         self.env["bus.bus"]._sendone(channel, "notification", msg)
-
-    def _transition(self, new_state):
-        self.ensure_one()
-        if new_state not in VALID_TRANSITIONS.get(self.state, set()):
-            raise ValidationError(
-                f"Cannot move ticket from '{self.state}' to '{new_state}'")
-        self.state = new_state
 
     def _sync_state_from_lines(self):
         self.ensure_one()
         if not self.line_ids:
             return
         line_states = set(self.line_ids.mapped("state"))
-        if line_states == {"ready"} or line_states == {"ready", "cancelled"}:
-            if self.state != "ready":
-                self.state = "ready"
-                self.ready_at = fields.Datetime.now()
-                self._notify_kitchen("pos_order_completed")
-        elif line_states == {"cancelled"}:
-            if self.state != "cancelled":
-                self.state = "cancelled"
-                self._notify_kitchen("pos_order_cancelled")
+        if not line_states or line_states == {"cancelled"}:
+            new_state = "cancelled"
+        elif line_states <= {"delivered", "cancelled"} and "delivered" in line_states:
+            new_state = "delivered"
+        elif line_states <= {"ready", "cancelled"} and "ready" in line_states:
+            new_state = "ready"
         elif "cooking" in line_states:
-            if self.state == "pending":
-                self.state = "cooking"
+            new_state = "cooking"
+        else:
+            new_state = "pending"
+        if self.state != new_state:
+            self.state = new_state
+            if new_state == "cooking":
                 self.started_at = self.started_at or fields.Datetime.now()
                 self._notify_kitchen("pos_order_accepted")
+            elif new_state == "ready":
+                self.ready_at = fields.Datetime.now()
+                self._notify_kitchen("pos_order_completed")
+            elif new_state == "cancelled":
+                self._notify_kitchen("pos_order_cancelled")
 
     def progress_to_cooking(self):
         self.ensure_one()
-        self._transition("cooking")
+        self.state = "cooking"
         self.started_at = fields.Datetime.now()
+        pending_lines = self.line_ids.filtered(lambda l: l.state == "pending")
+        pending_lines.write({"state": "cooking"})
         self._notify_kitchen("pos_order_accepted")
         return True
 
     def progress_to_ready(self):
         self.ensure_one()
-        self._transition("ready")
+        self.state = "ready"
         self.ready_at = fields.Datetime.now()
-        self.line_ids.write({"state": "ready"})
+        active_lines = self.line_ids.filtered(lambda l: l.state in ("pending", "cooking"))
+        active_lines.write({"state": "ready"})
         self._notify_kitchen("pos_order_completed")
 
     def progress_to_delivered(self):
         self.ensure_one()
-        self._transition("delivered")
+        self.state = "delivered"
         self.delivered_at = fields.Datetime.now()
         self._notify_kitchen("pos_order_delivered")
 
     def cancel_ticket(self):
         self.ensure_one()
-        self._transition("cancelled")
-        self.line_ids.write({"state": "cancelled"})
+        self.state = "cancelled"
+        active_lines = self.line_ids.filtered(lambda l: l.state != "cancelled")
+        active_lines.write({"state": "cancelled"})
         self._notify_kitchen("pos_order_cancelled")
 
     def _get_oven_capacity(self):
@@ -285,6 +277,8 @@ class PosKitchenTicket(models.Model):
                     "product_category": l.product_category or "",
                     "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
                     "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
+                    "modified": l.note_modified,
+                    "modified_at": l.note_modified_at,
                 })
                 if cat:
                     all_categories.add(cat)
@@ -320,12 +314,14 @@ class PosKitchenTicket(models.Model):
             ("ticket_type", "=", "new"),
         ], limit=1)
         if ticket:
+            _logger.info("[KITCHEN] get_or_create_ticket: found existing ticket id=%s for order %s", ticket.id, pos_order.pos_reference)
             return ticket
 
         kitchen_screen = self.env["kitchen.screen"].search([
             ("pos_config_id", "=", pos_order.config_id.id)
         ], limit=1)
         if not kitchen_screen:
+            _logger.info("[KITCHEN] get_or_create_ticket: no kitchen screen for config %s, skipping", pos_order.config_id.id)
             return False
 
         has_kitchen = False
@@ -337,11 +333,13 @@ class PosKitchenTicket(models.Model):
                 break
 
         if not has_kitchen:
+            _logger.info("[KITCHEN] get_or_create_ticket: no kitchen-category lines in order %s", pos_order.pos_reference)
             return False
 
         sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
         payment_status = "paid" if pos_order.state == "paid" else "not_paid"
 
+        _logger.info("[KITCHEN] get_or_create_ticket: CREATING ticket %s for order %s with %d lines", sequence, pos_order.pos_reference, len(pos_order.lines))
         ticket = self.create({
             "origin_pos_order_id": pos_order.id,
             "sequence": sequence,
@@ -358,14 +356,19 @@ class PosKitchenTicket(models.Model):
                     for c in order_line.product_id.pos_categ_ids):
                 qty = order_line.qty
                 product_category = self._get_product_category(order_line.product_id)
+                note_text = _extract_note_text(order_line.note)
+                _logger.info("[KITCHEN]   line: %s qty=%s note=%r cat=%s", order_line.product_id.name, qty, note_text, product_category)
                 line_vals.append((0, 0, {
                     "pos_order_line_id": order_line.id,
                     "qty_total": qty,
                     "qty_sent": qty,
-                    "note": _extract_note_text(order_line.note),
+                    "note": note_text,
+                    "note_snapshot": note_text,
                     "state": "pending",
                     "product_category": product_category,
                 }))
+                order_line.qty_sent_to_kitchen = qty
+                order_line.note_sent_to_kitchen = note_text
         if line_vals:
             ticket.write({"line_ids": line_vals})
         ticket._notify_kitchen("pos_order_created")
@@ -387,10 +390,12 @@ class PosKitchenTicket(models.Model):
 
     @api.model
     def create_delta_tickets(self, pos_order):
+        _logger.info("[KITCHEN] create_delta_tickets: START for order %s (state=%s)", pos_order.pos_reference, pos_order.state)
         kitchen_screen = self.env["kitchen.screen"].search([
             ("pos_config_id", "=", pos_order.config_id.id)
         ], limit=1)
         if not kitchen_screen:
+            _logger.info("[KITCHEN] create_delta_tickets: no kitchen screen, aborting")
             return []
 
         existing_tickets = self.search([
@@ -403,16 +408,45 @@ class PosKitchenTicket(models.Model):
             if not (order_line.product_id.pos_categ_ids and any(
                     c.id in kitchen_screen.pos_categ_ids.ids
                     for c in order_line.product_id.pos_categ_ids)):
+                _logger.info("[KITCHEN]   line %s: not in kitchen categories, skipping", order_line.product_id.name)
                 continue
 
             current_qty = order_line.qty
             sent_qty = order_line.qty_sent_to_kitchen
             delta = current_qty - sent_qty
+            current_note = _extract_note_text(order_line.note)
+
+            _logger.info("[KITCHEN]   line %s: current_qty=%s sent_qty=%s delta=%s note=%r",
+                         order_line.product_id.name, current_qty, sent_qty, delta, current_note)
+
+            existing_kitchen_line = self.env["pos.kitchen.ticket.line"].search([
+                ("pos_order_line_id", "=", order_line.id),
+                ("ticket_id.ticket_type", "=", "new"),
+                ("state", "not in", ["cancelled"]),
+            ], limit=1)
+
+            note_changed = (
+                existing_kitchen_line
+                and existing_kitchen_line.note_snapshot != current_note
+            )
+
+            if note_changed and existing_kitchen_line:
+                _logger.info("[KITCHEN]   line %s: NOTE CHANGED from %r to %r, updating in-place",
+                             order_line.product_id.name, existing_kitchen_line.note_snapshot, current_note)
+                existing_kitchen_line.write({
+                    "note": current_note,
+                    "note_snapshot": current_note,
+                    "note_modified": True,
+                    "note_modified_at": fields.Datetime.now(),
+                })
+                existing_kitchen_line.ticket_id._notify_kitchen("pos_order_line_modified")
 
             if delta == 0:
+                _logger.info("[KITCHEN]   line %s: delta=0, skipping", order_line.product_id.name)
                 continue
 
             if delta > 0:
+                _logger.info("[KITCHEN]   line %s: delta>0 (+%s), creating ADDITION ticket", order_line.product_id.name, delta)
                 next_letter = self._next_batch_letter(used_letters)
                 used_letters.add(next_letter)
                 sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
@@ -434,14 +468,18 @@ class PosKitchenTicket(models.Model):
                     "qty_total": abs(delta),
                     "qty_sent": abs(delta),
                     "note": _extract_note_text(order_line.note),
+                    "note_snapshot": _extract_note_text(order_line.note),
                     "state": "pending",
                     "product_category": self._get_product_category(order_line.product_id),
                 })
                 order_line.qty_sent_to_kitchen = current_qty
+                order_line.note_sent_to_kitchen = _extract_note_text(order_line.note)
                 ticket._notify_kitchen("pos_order_created")
                 tickets_created.append(ticket)
+                _logger.info("[KITCHEN]   ADDITION ticket %s created (batch %s) with qty=%s", ticket.sequence, next_letter, abs(delta))
 
             elif delta < 0:
+                _logger.info("[KITCHEN]   line %s: delta<0 (%s), creating CANCELLATION ticket", order_line.product_id.name, delta)
                 next_letter = self._next_batch_letter(used_letters)
                 used_letters.add(next_letter)
                 sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
@@ -463,13 +501,17 @@ class PosKitchenTicket(models.Model):
                     "qty_total": abs(delta),
                     "qty_sent": abs(delta),
                     "note": _extract_note_text(order_line.note),
+                    "note_snapshot": _extract_note_text(order_line.note),
                     "state": "cancelled",
                     "product_category": self._get_product_category(order_line.product_id),
                 })
                 order_line.qty_sent_to_kitchen = current_qty
+                order_line.note_sent_to_kitchen = _extract_note_text(order_line.note)
                 ticket._notify_kitchen("pos_order_created")
                 tickets_created.append(ticket)
+                _logger.info("[KITCHEN]   CANCELLATION ticket %s created (batch %s) with qty=%s", ticket.sequence, next_letter, abs(delta))
 
+        _logger.info("[KITCHEN] create_delta_tickets: DONE for order %s. %d tickets created.", pos_order.pos_reference, len(tickets_created))
         return tickets_created
 
     @staticmethod
@@ -501,6 +543,9 @@ class PosKitchenTicketLine(models.Model):
     full_product_name = fields.Char(
         related="pos_order_line_id.full_product_name", store=True)
     note = fields.Char(string="Nota")
+    note_snapshot = fields.Char(
+        string="Nota al momento de envio",
+        help="Snapshot of note when line was sent to kitchen. Used to detect note changes.")
     product_category = fields.Char(
         string="Categoria de Producto",
         help="Categoria para enrutamiento por estacion")
@@ -510,10 +555,15 @@ class PosKitchenTicketLine(models.Model):
     qty_ready = fields.Float(string="Cantidad lista", default=0.0)
     qty_cancelled = fields.Float(string="Cantidad cancelada", default=0.0)
 
+    note_modified = fields.Boolean(
+        string="Modificado",
+        default=False,
+        help="True when POS changed this line after it was sent to kitchen.")
+    note_modified_at = fields.Datetime(string="Modificado a las")
+
     state = fields.Selection([
         ("pending", "Pendiente"),
         ("cooking", "En Horno"),
-        ("waiting", "Esperando Espacio"),
         ("ready", "Listo"),
         ("cancelled", "Cancelado"),
     ], default="pending", string="Estado")
@@ -582,4 +632,17 @@ class PosKitchenTicketLine(models.Model):
                 "ticket_id": self.ticket_id.id,
                 "config_id": self.ticket_id.pos_config_id.id,
                 "new_status": new_state,
+            })
+
+    def acknowledge_modification(self):
+        self.ensure_one()
+        self.note_modified = False
+        self.note_modified_at = False
+        self.env["bus.bus"]._sendone(
+            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
+                "res_model": self._name,
+                "message": "pos_order_line_acknowledged",
+                "line_id": self.id,
+                "ticket_id": self.ticket_id.id,
+                "config_id": self.ticket_id.pos_config_id.id,
             })

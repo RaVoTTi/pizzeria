@@ -40,6 +40,7 @@ class KitchenScreenDashboard extends Component {
         this.dismissAudioAlert = this.dismissAudioAlert.bind(this);
         this.getModifierClass = this.getModifierClass.bind(this);
         this.getCardClasses = this.getCardClasses.bind(this);
+        this.acknowledgeModification = this.acknowledgeModification.bind(this);
 
         this.pendingStage = () => { this.state.stages = 'pending'; };
         this.cookingStage = () => { this.state.stages = 'cooking'; };
@@ -47,7 +48,7 @@ class KitchenScreenDashboard extends Component {
         this.deliveredStage = () => { this.state.stages = 'delivered'; };
 
         this.currentShopId = this.getCurrentShopId();
-        this.channel = `pos_order_created_${this.currentShopId}`;
+        this.channel = `pos_kitchen.${this.currentShopId}`;
 
         this.state = useState({
             tickets: [],
@@ -82,6 +83,7 @@ class KitchenScreenDashboard extends Component {
         this._audioCtx = null;
 
         onMounted(() => {
+            console.log("[KDS] onMounted: subscribing to bus channel", this.channel, "for shop", this.currentShopId);
             this.busService.addChannel(this.channel);
             this.busService.subscribe('notification', this.onTicketNotification);
             this.loadTickets();
@@ -170,7 +172,6 @@ class KitchenScreenDashboard extends Component {
         const labels = {
             pending: _t('Pend'),
             cooking: _t('Horno'),
-            waiting: _t('Espera'),
             ready: _t('Listo'),
             cancelled: _t('X'),
         };
@@ -284,6 +285,7 @@ class KitchenScreenDashboard extends Component {
         if (this.state.isLoading) return;
         try {
             this.state.isLoading = true;
+            console.log("[KDS] loadTickets: fetching for shop", this.currentShopId);
             const result = await this.orm.call("pos.kitchen.ticket", "get_details", [this.currentShopId]);
             const tickets = result.tickets || [];
             const stations = result.stations || [];
@@ -291,6 +293,16 @@ class KitchenScreenDashboard extends Component {
             const newIds = new Set(tickets.map(t => t.id));
             const oldIds = new Set(this.state.tickets.map(t => t.id));
             const hasNewTickets = [...newIds].some(id => !oldIds.has(id));
+
+            console.log("[KDS] loadTickets: received", tickets.length, "tickets, hasNewTickets:", hasNewTickets);
+            tickets.forEach(t => {
+                console.log("[KDS]   ticket id=" + t.id + " seq=" + t.sequence + t.batch_letter + " state=" + t.state + " type=" + t.ticket_type + " lines=" + (t.lines ? t.lines.length : 0));
+                if (t.lines) {
+                    t.lines.forEach(l => {
+                        console.log("[KDS]     line id=" + l.id + " product=" + l.full_product_name + " qty=" + l.qty_total + " state=" + l.state + " note=" + l.note + " modified=" + l.modified);
+                    });
+                }
+            });
 
             this.state.tickets = tickets;
             this.state.stations = stations;
@@ -373,18 +385,21 @@ class KitchenScreenDashboard extends Component {
                 }
             });
         });
-        const waiting = this.state.sortedTickets.filter(t => t.state === 'waiting').length;
         this.state.ovenAvailable = Math.max(0, this.state.ovenCapacity - totalPizzas);
-        this.state.ovenWaiting = waiting;
     }
 
     onTicketNotification(message) {
-        if (!message || message.config_id !== this.currentShopId) return;
+        console.log("[KDS] onTicketNotification received:", JSON.stringify(message));
+        if (!message || message.config_id !== this.currentShopId) {
+            console.log("[KDS] onTicketNotification: ignoring (config mismatch or null). my shop=" + this.currentShopId + " msg config=" + (message ? message.config_id : 'null'));
+            return;
+        }
         const relevant = [
             'pos_order_created', 'pos_order_updated', 'pos_order_paid',
             'pos_order_accepted', 'pos_order_cancelled', 'pos_order_completed',
             'pos_order_delivered', 'pos_order_line_updated',
             'pos_order_line_cooking', 'pos_order_line_ready', 'pos_order_line_cancelled',
+            'pos_order_line_modified', 'pos_order_line_acknowledged',
         ];
         if (relevant.includes(message.message)) this.loadTickets();
     }
@@ -397,7 +412,6 @@ class KitchenScreenDashboard extends Component {
     _advanceTicket(ticket) {
         const next = ticket.state === 'pending' ? 'cooking'
             : ticket.state === 'cooking' ? 'ready'
-            : ticket.state === 'waiting' ? 'ready'
             : ticket.state === 'ready' ? 'delivered'
             : null;
         if (!next) return;
@@ -508,7 +522,6 @@ class KitchenScreenDashboard extends Component {
         const nextMap = {
             pending: 'cooking',
             cooking: 'ready',
-            waiting: 'ready',
             ready: 'cancelled',
             cancelled: 'pending',
         };
@@ -517,7 +530,6 @@ class KitchenScreenDashboard extends Component {
         const methodMap = {
             pending: 'action_cooking',
             cooking: 'action_ready',
-            waiting: 'action_ready',
             ready: 'action_cancel',
             cancelled: 'action_cooking',
         };
@@ -552,6 +564,15 @@ class KitchenScreenDashboard extends Component {
             this.state.tickets = [...this.state.tickets];
             this._recomputeDerived();
             console.error("Error cancelling line:", error);
+        }
+    }
+
+    async acknowledgeModification(ev, line) {
+        ev.stopPropagation();
+        try {
+            await this.orm.call("pos.kitchen.ticket.line", "acknowledge_modification", [line.id]);
+        } catch (error) {
+            console.error("Error acknowledging modification:", error);
         }
     }
 }

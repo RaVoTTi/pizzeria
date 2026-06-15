@@ -221,9 +221,6 @@
 .kds-tab[data-state="cooking"] { --tab-color: #ef4444; }
 .kds-tab[data-state="cooking"].kds-tab--active { color: #ef4444; }
 
-.kds-tab[data-state="waiting"] { --tab-color: #a855f7; }
-.kds-tab[data-state="waiting"].kds-tab--active { color: #a855f7; }
-
 .kds-tab[data-state="ready"] { --tab-color: #22c55e; }
 .kds-tab[data-state="ready"].kds-tab--active { color: #22c55e; }
 
@@ -245,7 +242,6 @@
 
 .kds-tab[data-state="pending"] .kds-count-badge { background-color: #f59e0b; color: #000; }
 .kds-tab[data-state="cooking"] .kds-count-badge { background-color: #ef4444; color: #fff; }
-.kds-tab[data-state="waiting"] .kds-count-badge { background-color: #a855f7; color: #fff; }
 .kds-tab[data-state="ready"] .kds-count-badge { background-color: #22c55e; color: #000; }
 .kds-tab[data-state="delivered"] .kds-count-badge { background-color: #3b82f6; color: #fff; }
 
@@ -285,7 +281,6 @@
 
 .kds-card[data-state="pending"]:hover { border-color: #f59e0b; }
 .kds-card[data-state="cooking"]:hover { border-color: #ef4444; }
-.kds-card[data-state="waiting"]:hover { border-color: #a855f7; }
 .kds-card[data-state="ready"]:hover { border-color: #22c55e; }
 .kds-card[data-state="delivered"]:hover { border-color: #3b82f6; }
 
@@ -364,7 +359,6 @@
 
 .kds-card[data-state="pending"] .kds-card-header   { background-color: #f59e0b; color: #000; }
 .kds-card[data-state="cooking"] .kds-card-header   { background-color: #ef4444; color: #fff; }
-.kds-card[data-state="waiting"] .kds-card-header   { background-color: #a855f7; color: #fff; }
 .kds-card[data-state="ready"] .kds-card-header     { background-color: #22c55e; color: #000; }
 .kds-card[data-state="delivered"] .kds-card-header { background-color: #3b82f6; color: #fff; }
 
@@ -610,9 +604,37 @@
 
 .kds-line-status--pending { background-color: #f59e0b; color: #000; }
 .kds-line-status--cooking { background-color: #ef4444; color: #fff; }
-.kds-line-status--waiting { background-color: #a855f7; color: #fff; }
 .kds-line-status--ready { background-color: #22c55e; color: #000; }
 .kds-line-status--cancelled { background-color: #6b7280; color: #fff; }
+
+.kds-line-status--modified {
+    background-color: #f59e0b;
+    color: #000;
+    animation: kdsPulse 2s infinite;
+}
+
+/* ========== LINE ACKNOWLEDGE BUTTON ========== */
+.kds-line-btn-ack {
+    background: none;
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    min-width: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kds-line-btn-ack:hover {
+    background-color: #f59e0b;
+    color: #000;
+}
 
 /* ========== LINE CANCEL BUTTON ========== */
 .kds-line-btn-cancel {

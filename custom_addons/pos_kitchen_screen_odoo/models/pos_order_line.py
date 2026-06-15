@@ -8,8 +8,13 @@ class PosOrderLine(models.Model):
         default=0.0,
         help="Cantidad ya enviada a cocina. Se usa para detectar adiciones o cancelaciones."
     )
+    note_sent_to_kitchen = fields.Char(
+        default="",
+        help="Snapshot of note when last sent to kitchen. Used to detect note changes."
+    )
 
     def _load_pos_data_fields(self, config_id):
         fields_list = super()._load_pos_data_fields(config_id)
         fields_list.append("qty_sent_to_kitchen")
+        fields_list.append("note_sent_to_kitchen")
         return fields_list

@@ -170,7 +170,7 @@
                                         </t>
 
                                         <div class="kds-line"
-                                             t-att-class="line.state === 'ready' ? 'kds-line kds-line--ready' : line.state === 'cancelled' ? 'kds-line kds-line--cancelled' : line.state === 'waiting' ? 'kds-line kds-line--waiting' : 'kds-line'"
+                                             t-att-class="line.state === 'ready' ? 'kds-line kds-line--ready' : line.state === 'cancelled' ? 'kds-line kds-line--cancelled' : 'kds-line'"
                                              t-on-click.stop="(e) => this.onLineClick(e, line)">
 
                                             <span class="qty"><t t-esc="line.qty_total"/>x</span>
@@ -178,9 +178,18 @@
                                             <span class="product-name"><t t-esc="line.full_product_name"/></span>
 
                                             <!-- Line Status Badge -->
-                                            <span t-att-class="line.state === 'pending' ? 'kds-line-status kds-line-status--pending' : line.state === 'cooking' ? 'kds-line-status kds-line-status--cooking' : line.state === 'waiting' ? 'kds-line-status kds-line-status--waiting' : line.state === 'ready' ? 'kds-line-status kds-line-status--ready' : 'kds-line-status kds-line-status--cancelled'">
+                                            <span t-att-class="line.state === 'pending' ? 'kds-line-status kds-line-status--pending' : line.state === 'cooking' ? 'kds-line-status kds-line-status--cooking' : line.state === 'ready' ? 'kds-line-status kds-line-status--ready' : 'kds-line-status kds-line-status--cancelled'">
                                                 <t t-esc="this.getLineStatusLabel(line.state)"/>
                                             </span>
+
+                                            <!-- MODIFICADO Badge + Acknowledge Button -->
+                                            <t t-if="line.modified">
+                                                <span class="kds-line-status kds-line-status--modified">MODIFICADO</span>
+                                                <button class="kds-line-btn-ack"
+                                                        t-on-click.stop="(e) => this.acknowledgeModification(e, line)">
+                                                    OK
+                                                </button>
+                                            </t>
 
                                             <!-- Cancel Line Button -->
                                             <t t-if="line.state !== 'cancelled'">
@@ -205,7 +214,6 @@
                                         <div class="kds-next-action">
                                             <t t-if="ticket.state === 'pending'">TAP — AL HORNO</t>
                                             <t t-elif="ticket.state === 'cooking'">TAP — LISTO</t>
-                                            <t t-elif="ticket.state === 'waiting'">TAP — AL HORNO</t>
                                             <t t-elif="ticket.state === 'ready'">TAP — ENTREGADO</t>
                                         </div>
                                     </t>

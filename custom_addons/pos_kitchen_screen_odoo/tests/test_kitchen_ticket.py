@@ -51,12 +51,21 @@ class TestKitchenTicketWorkflow(TransactionCase):
         cls.env.cr.execute("DELETE FROM pos_kitchen_ticket")
         cls.env["kitchen.screen"].search([]).unlink()
 
-    def _create_pos_order(self, qty=2.0):
+    def _create_pos_order(self, qty=2.0, note="", order_type="mesa"):
         self._close_all_sessions()
         session = self.env["pos.session"].with_context(onboarding_creation=True).create({
             "config_id": self.pos_config.id,
         })
         total = qty * 10.0
+        line_vals = {
+            "product_id": self.product.id,
+            "qty": qty,
+            "price_unit": 10.0,
+            "price_subtotal": total,
+            "price_subtotal_incl": total,
+        }
+        if note:
+            line_vals["note"] = note
         order = self.env["pos.order"].create({
             "company_id": self.company.id,
             "session_id": session.id,
@@ -67,13 +76,8 @@ class TestKitchenTicketWorkflow(TransactionCase):
             "amount_total": total,
             "amount_paid": total,
             "amount_return": 0.0,
-            "lines": [(0, 0, {
-                "product_id": self.product.id,
-                "qty": qty,
-                "price_unit": 10.0,
-                "price_subtotal": total,
-                "price_subtotal_incl": total,
-            })],
+            "order_type": order_type,
+            "lines": [(0, 0, line_vals)],
         })
         return order
 
@@ -282,11 +286,11 @@ class TestKitchenTicketWorkflow(TransactionCase):
             ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
 
         details = self.env["pos.kitchen.ticket"].get_details(self.pos_config.id)
-        self.assertTrue(any(d["id"] == ticket.id for d in details))
+        self.assertTrue(any(d["id"] == ticket.id for d in details["tickets"]))
 
         ticket.cancel_ticket()
         details = self.env["pos.kitchen.ticket"].get_details(self.pos_config.id)
-        self.assertFalse(any(d["id"] == ticket.id for d in details))
+        self.assertFalse(any(d["id"] == ticket.id for d in details["tickets"]))
 
     def test_payment_status_updates_on_paid(self):
         self._cleanup_kitchen_screens()
@@ -338,8 +342,7 @@ class TestKitchenTicketWorkflow(TransactionCase):
             "pos_config_id": self.pos_config.id,
             "pos_categ_ids": [(6, 0, [self.pos_category.id])],
         })
-        order = self._create_pos_order(1.0)
-        order.order_type = 'delivery'
+        order = self._create_pos_order(1.0, order_type='delivery')
         ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
         self.assertEqual(ticket.order_type, 'delivery',
                          "Ticket order_type should be copied from pos.order")
@@ -350,8 +353,7 @@ class TestKitchenTicketWorkflow(TransactionCase):
             "pos_config_id": self.pos_config.id,
             "pos_categ_ids": [(6, 0, [self.pos_category.id])],
         })
-        order = self._create_pos_order(1.0)
-        order.order_type = 'retira'
+        order = self._create_pos_order(1.0, order_type='retira')
         ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
 
         details = self.env["pos.kitchen.ticket"].get_details(self.pos_config.id)
@@ -385,3 +387,90 @@ class TestKitchenTicketWorkflow(TransactionCase):
         order = self._create_pos_order(1.0)
         self.assertEqual(order.order_type, 'mesa',
                          "Default order_type should be mesa")
+
+    def test_note_change_in_place(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(2.0, note="Sin cebolla")
+        ticket = self.env["pos.kitchen.ticket"].search([
+            ("origin_pos_order_id", "=", order.id),
+            ("ticket_type", "=", "new"),
+        ], limit=1)
+        if not ticket:
+            ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
+
+        line = ticket.line_ids[0]
+        self.assertEqual(line.note, "Sin cebolla")
+        self.assertEqual(line.note_snapshot, "Sin cebolla")
+        self.assertFalse(line.note_modified)
+
+        order.lines.note = "Sin cebolla, sin ajo"
+        delta_tickets = self.env["pos.kitchen.ticket"].create_delta_tickets(order)
+        self.assertEqual(len(delta_tickets), 0, "Note change alone should not create delta ticket")
+
+        line.invalidate_recordset()
+        line = self.env["pos.kitchen.ticket.line"].browse(line.id)
+        self.assertEqual(line.note, "Sin cebolla, sin ajo")
+        self.assertEqual(line.note_snapshot, "Sin cebolla, sin ajo")
+        self.assertTrue(line.note_modified)
+        self.assertTrue(line.note_modified_at)
+
+    def test_acknowledge_modification(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(2.0)
+        order.lines.note = "Sin cebolla"
+        ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
+
+        line = ticket.line_ids[0]
+        line.note_modified = True
+        line.note_modified_at = "2025-01-01 12:00:00"
+
+        line.acknowledge_modification()
+        self.assertFalse(line.note_modified)
+        self.assertFalse(line.note_modified_at)
+
+    def test_backward_state_transition(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(1.0)
+        ticket = self.env["pos.kitchen.ticket"].search([
+            ("origin_pos_order_id", "=", order.id),
+            ("ticket_type", "=", "new"),
+        ], limit=1)
+        if not ticket:
+            ticket = self.env["pos.kitchen.ticket"].get_or_create_ticket(order)
+
+        line = ticket.line_ids[0]
+        line.action_cooking()
+        self.assertEqual(line.state, "cooking")
+
+        line.state = "pending"
+        self.assertEqual(line.state, "pending", "Can move backward from cooking to pending")
+
+        line.action_cooking()
+        self.assertEqual(line.state, "cooking")
+
+        line.action_ready()
+        self.assertEqual(line.state, "ready")
+
+        line.state = "cooking"
+        self.assertEqual(line.state, "cooking", "Can move backward from ready to cooking")
+
+        line.state = "pending"
+        self.assertEqual(line.state, "pending", "Can move backward from cooking to pending")
+
+        line.state = "cancelled"
+        self.assertEqual(line.state, "cancelled")
+
+        line.state = "pending"
+        self.assertEqual(line.state, "pending", "Can move backward from cancelled to pending")

@@ -23,5 +23,4 @@ from . import kitchen_screen
 from . import pos_kitchen_ticket
 from . import pos_orders
 from . import pos_order_line
-from . import pos_session
 from . import product_product
