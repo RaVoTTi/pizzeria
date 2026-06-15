@@ -9,14 +9,14 @@ patch(ControlButtons.prototype, {
         this.orm = useService("orm");
         const order = this.pos.getOrder();
         if (order) {
-            order.is_takeaway = order.is_takeaway || false;
-            order.is_dine_in = order.is_dine_in !== false;
+            order.is_takeaway = order.order_type === 'retira' || order.order_type === 'delivery';
+            order.is_dine_in = order.order_type === 'mesa' || (!order.order_type && !!order.table_id);
         }
     },
 
     get buttonClass() {
         const order = this.pos.getOrder();
-        if (order && order.is_takeaway) {
+        if (order && (order.order_type === 'retira' || order.order_type === 'delivery' || order.is_takeaway)) {
             return "control-button customer-button btn rounded-0 fw-bolder text-truncate btn-primary";
         }
         return "control-button btn btn-light rounded-0 fw-bolder";
@@ -28,15 +28,17 @@ patch(ControlButtons.prototype, {
             return alert('Please add product!!');
         }
 
-        if (SelectedOrder.is_takeaway) {
+        if (SelectedOrder.is_takeaway || SelectedOrder.order_type === 'retira' || SelectedOrder.order_type === 'delivery') {
             SelectedOrder.is_dine_in = true;
             SelectedOrder.is_takeaway = false;
+            SelectedOrder.order_type = 'mesa';
             if (this.pos.config.is_generate_token) {
                 this.pos.config.pos_token -= 1;
             }
         } else {
             SelectedOrder.is_takeaway = true;
             SelectedOrder.is_dine_in = false;
+            SelectedOrder.order_type = 'retira';
             SelectedOrder.generate_token = true;
             if (this.pos.config.is_generate_token) {
                 this.pos.config.pos_token += 1;

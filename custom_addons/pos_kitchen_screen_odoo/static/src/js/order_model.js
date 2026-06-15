@@ -6,7 +6,7 @@ patch(PosOrder.prototype, {
     setup(_defaultObj, options) {
         super.setup(...arguments);
         if (!this.order_type) {
-            this.order_type = this.table_id ? 'mesa' : null;
+            this.order_type = this.table_id ? 'mesa' : 'retira';
         }
     },
 });

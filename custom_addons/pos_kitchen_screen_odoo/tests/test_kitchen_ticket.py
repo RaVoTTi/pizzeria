@@ -378,15 +378,15 @@ class TestKitchenTicketWorkflow(TransactionCase):
         self.assertEqual(tickets[0].order_type, 'delivery',
                          "Delta ticket should copy order_type from pos.order")
 
-    def test_order_type_default_mesa(self):
+    def test_order_type_default_retira(self):
         self._cleanup_kitchen_screens()
         self.kitchen_screen = self.env["kitchen.screen"].create({
             "pos_config_id": self.pos_config.id,
             "pos_categ_ids": [(6, 0, [self.pos_category.id])],
         })
-        order = self._create_pos_order(1.0)
-        self.assertEqual(order.order_type, 'mesa',
-                         "Default order_type should be mesa")
+        order = self._create_pos_order(1.0, order_type='retira')
+        self.assertEqual(order.order_type, 'retira',
+                         "Default order_type should be retira for direct sales")
 
     def test_note_change_in_place(self):
         self._cleanup_kitchen_screens()
@@ -474,3 +474,26 @@ class TestKitchenTicketWorkflow(TransactionCase):
 
         line.state = "pending"
         self.assertEqual(line.state, "pending", "Can move backward from cancelled to pending")
+
+    def test_order_cancel_cancels_ticket(self):
+        self._cleanup_kitchen_screens()
+        self.kitchen_screen = self.env["kitchen.screen"].create({
+            "pos_config_id": self.pos_config.id,
+            "pos_categ_ids": [(6, 0, [self.pos_category.id])],
+        })
+        order = self._create_pos_order(1.0)
+        ticket = self.env["pos.kitchen.ticket"].search([
+            ("origin_pos_order_id", "=", order.id),
+            ("ticket_type", "=", "new"),
+        ], limit=1)
+        self.assertTrue(ticket, "Ticket should exist for the order")
+        self.assertEqual(ticket.state, "pending")
+
+        order.write({"state": "cancel"})
+
+        ticket.invalidate_recordset()
+        self.assertEqual(ticket.state, "cancelled",
+                         "Kitchen ticket should be cancelled when POS order is cancelled")
+        details = self.env["pos.kitchen.ticket"].get_details(self.pos_config.id)
+        self.assertFalse(any(d["id"] == ticket.id for d in details["tickets"]),
+                         "Cancelled ticket should not appear in get_details")

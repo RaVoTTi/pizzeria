@@ -13,17 +13,17 @@ class PosOrder(models.Model):
         ('mesa', 'Mesa'),
         ('delivery', 'Delivery'),
         ('retira', 'Retira'),
-    ], string="Tipo de Orden", default='mesa')
+    ], string="Tipo de Orden", default='retira')
 
     requested_time = fields.Datetime(string="Hora Solicitada")
 
     @api.onchange('table_id', 'partner_id')
     def _onchange_order_type(self):
         for order in self:
-            if order.table_id:
+            if order.partner_id:
+                order.order_type = 'delivery' if order.partner_id.street else 'retira'
+            elif order.table_id:
                 order.order_type = 'mesa'
-            elif order.partner_id and order.partner_id.street:
-                order.order_type = 'delivery'
             else:
                 order.order_type = 'retira'
 
@@ -46,6 +46,17 @@ class PosOrder(models.Model):
     def write(self, vals):
         _logger.info("[KITCHEN] Order write: ids=%s vals=%s", self.ids, list(vals.keys()))
         res = super().write(vals)
+
+        if vals.get('state') == 'cancel':
+            for order in self:
+                tickets = self.env["pos.kitchen.ticket"].search([
+                    ("origin_pos_order_id", "=", order.id),
+                    ("state", "not in", ["delivered", "cancelled"]),
+                ])
+                for ticket in tickets:
+                    ticket.cancel_ticket()
+            return res
+
         Sync = self.env["pos.kitchen.sync"]
         if Sync._affects_kitchen(vals):
             for order in self:

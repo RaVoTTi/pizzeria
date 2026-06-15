@@ -9,6 +9,16 @@ const GHOST_DURATION_MS = 10000;
 const OVEN_CAPACITY = 6;
 const SLA_WARNING_MIN = 30;
 const SLA_AMBER_MIN = 10;
+const CARD_TRANSITION_MS = 3000;
+
+function _deriveTicketState(ticket) {
+    const lineStates = new Set((ticket.lines || []).map(l => l.state));
+    if (lineStates.has('pending')) return 'pending';
+    if (lineStates.has('cooking')) return 'cooking';
+    if (lineStates.has('ready')) return 'ready';
+    if (lineStates.has('cancelled') && lineStates.size === 1) return 'cancelled';
+    return ticket.state;
+}
 
 class KitchenScreenDashboard extends Component {
     setup() {
@@ -21,9 +31,11 @@ class KitchenScreenDashboard extends Component {
         this.loadTickets = this.loadTickets.bind(this);
         this.onTicketNotification = this.onTicketNotification.bind(this);
         this.onCardClick = this.onCardClick.bind(this);
+        this.onCardPrevious = this.onCardPrevious.bind(this);
         this.cancelTicket = this.cancelTicket.bind(this);
         this.printTicket = this.printTicket.bind(this);
         this.onLineClick = this.onLineClick.bind(this);
+        this.onLinePrevious = this.onLinePrevious.bind(this);
         this.cancelLine = this.cancelLine.bind(this);
         this.getElapsedMinutes = this.getElapsedMinutes.bind(this);
         this.getElapsedColor = this.getElapsedColor.bind(this);
@@ -79,16 +91,27 @@ class KitchenScreenDashboard extends Component {
             },
             audioAlertActive: false,
             ghostingTickets: new Set(),
+            transitioningTickets: new Set(),
         });
 
         this._undoTimeout = null;
         this._audioCtx = null;
+        this._onVisibilityChange = null;
+        this._pendingCancels = new Set();
 
         onMounted(() => {
             console.log("[KDS] onMounted: subscribing to bus channel", this.channel, "for shop", this.currentShopId);
             this.busService.addChannel(this.channel);
             this.busService.subscribe('notification', this.onTicketNotification);
             this.loadTickets();
+
+            this._onVisibilityChange = () => {
+                if (!document.hidden) {
+                    console.log("[KDS] page visible again, reloading tickets");
+                    this.loadTickets();
+                }
+            };
+            document.addEventListener('visibilitychange', this._onVisibilityChange);
 
             this._unlockAudio = () => {
                 if (this._audioCtx && this._audioCtx.state === 'suspended') {
@@ -112,6 +135,9 @@ class KitchenScreenDashboard extends Component {
             clearInterval(this.autoRefreshInterval);
             clearInterval(this.elapsedTimer);
             if (this._undoTimeout) clearTimeout(this._undoTimeout);
+            if (this._onVisibilityChange) {
+                document.removeEventListener('visibilitychange', this._onVisibilityChange);
+            }
             document.removeEventListener('click', this._unlockAudio);
         });
     }
@@ -143,7 +169,7 @@ class KitchenScreenDashboard extends Component {
     }
 
     getTicketType(ticket) {
-        return ticket.order_type || 'mesa';
+        return ticket.order_type || 'retira';
     }
 
     getPartnerName(ticket) {
@@ -204,6 +230,7 @@ class KitchenScreenDashboard extends Component {
         }
         if (ticket.syncError) classes.push('kds-card--sync-error');
         if (this.state.ghostingTickets.has(ticket.id)) classes.push('kds-card--ghosting');
+        if (this.state.transitioningTickets.has(ticket.id)) classes.push('kds-card--transitioning');
         if (ticket.optimistic) classes.push('kds-card--optimistic');
         return classes.join(' ');
     }
@@ -323,13 +350,23 @@ class KitchenScreenDashboard extends Component {
     }
 
     _recomputeDerived() {
-        const filtered = this._filterByStation(this.state.tickets);
-        this.state.sortedTickets = this._sortByAge(filtered);
-        this.state.pending_count = this.state.sortedTickets.filter(t => t.state === 'pending').length;
-        this.state.cooking_count = this.state.sortedTickets.filter(t => t.state === 'cooking').length;
-        this.state.ready_count = this.state.sortedTickets.filter(t => t.state === 'ready').length;
-        this.state.delivered_count = this.state.sortedTickets.filter(t => t.state === 'delivered').length;
-        this.state.prepSummary = this._computePrepSummary(this.state.sortedTickets);
+        const stage = this.state.stages;
+        this.state.sortedTickets = this._sortByAge(
+            this._filterByStation(this.state.tickets).filter(t => {
+                if (t.state === 'cancelled') return false;
+                if (this.state.ghostingTickets.has(t.id)) return false;
+                const isInTab = (t.lines || []).some(l => l.state === stage && l.state !== 'cancelled');
+                const isTransit = this.state.transitioningTickets.has(t.id);
+                if (stage === 'delivered') return t.state === 'delivered';
+                return isInTab || isTransit;
+            })
+        );
+        const active = this.state.tickets.filter(t => t.state !== 'cancelled' && !this.state.ghostingTickets.has(t.id));
+        this.state.pending_count = active.filter(t => (t.lines || []).some(l => l.state === 'pending')).length;
+        this.state.cooking_count = active.filter(t => (t.lines || []).some(l => l.state === 'cooking')).length;
+        this.state.ready_count = active.filter(t => (t.lines || []).some(l => l.state === 'ready')).length;
+        this.state.delivered_count = active.filter(t => t.state === 'delivered').length;
+        this.state.prepSummary = this._computePrepSummary(active);
         this._computeOvenQueue();
     }
 
@@ -413,6 +450,10 @@ class KitchenScreenDashboard extends Component {
     }
 
     async _reloadOrderTickets(orderId) {
+        if (this._pendingCancels.has(orderId)) {
+            console.log("[KDS] _reloadOrderTickets: skipping order", orderId, "(cancel pending)");
+            return;
+        }
         console.log("[KDS] _reloadOrderTickets: targeting order", orderId);
         try {
             const result = await this.orm.call("pos.kitchen.ticket", "get_details_for_order", [this.currentShopId, orderId]);
@@ -436,25 +477,35 @@ class KitchenScreenDashboard extends Component {
     }
 
     _advanceTicket(ticket) {
-        const next = ticket.state === 'pending' ? 'cooking'
-            : ticket.state === 'cooking' ? 'ready'
-            : ticket.state === 'ready' ? 'delivered'
-            : null;
-        if (!next) return;
+        const stage = this.state.stages;
+        const methodMap = {
+            pending: 'progress_to_cooking',
+            cooking: 'progress_to_ready',
+            ready: 'progress_to_delivered',
+        };
+        const method = methodMap[stage];
+        if (!method) return;
+
+        const nextMap = { pending: 'cooking', cooking: 'ready', ready: 'delivered' };
+        const next = nextMap[stage];
 
         const prevState = ticket.state;
         ticket.state = next;
         ticket.optimistic = true;
         ticket.syncError = false;
+
+        // Advance all lines in the current stage to the next state
+        const stageLines = (ticket.lines || []).filter(l => l.state === stage);
+        stageLines.forEach(l => { l.state = next; });
+        // Re-derive ticket state from lines
+        ticket.state = _deriveTicketState(ticket);
+
         this.state.tickets = [...this.state.tickets];
         this._recomputeDerived();
 
-        const method = next === 'cooking' ? 'progress_to_cooking'
-            : next === 'ready' ? 'progress_to_ready'
-            : 'progress_to_delivered';
-
         const undoAction = () => {
             ticket.state = prevState;
+            stageLines.forEach(l => { l.state = stage; });
             ticket.optimistic = false;
             this.state.tickets = [...this.state.tickets];
             this._recomputeDerived();
@@ -467,8 +518,10 @@ class KitchenScreenDashboard extends Component {
                 this.state.tickets = [...this.state.tickets];
             })
             .catch(err => {
-                ticket.syncError = true;
                 ticket.state = prevState;
+                stageLines.forEach(l => { l.state = stage; });
+                ticket.optimistic = false;
+                ticket.syncError = true;
                 this.state.tickets = [...this.state.tickets];
                 this._recomputeDerived();
                 console.error("Error advancing ticket:", err);
@@ -476,29 +529,28 @@ class KitchenScreenDashboard extends Component {
 
         const actionLabel = next === 'cooking' ? _t('al Horno')
             : next === 'ready' ? _t('Listo')
-            : next === 'delivered' ? 'Delivery'
+            : next === 'delivered' ? 'Entregado'
             : next;
         this._showUndoToast(_t(`Ticket movido a ${actionLabel}`), { undo: undoAction });
 
         if (next === 'delivered') {
+            this.state.ghostingTickets.add(ticket.id);
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
             setTimeout(() => {
-                this.state.ghostingTickets.add(ticket.id);
-                this.state.tickets = [...this.state.tickets];
-                setTimeout(() => {
-                    this.state.ghostingTickets.delete(ticket.id);
-                    this.loadTickets();
-                }, GHOST_DURATION_MS);
-            }, 2000);
+                this.state.ghostingTickets.delete(ticket.id);
+                this.loadTickets();
+            }, GHOST_DURATION_MS);
         }
     }
 
     _reverseMethod(method) {
         const reverse = {
-            progress_to_cooking: 'cancel_ticket',
-            progress_to_ready: 'progress_to_cooking',
-            progress_to_delivered: 'progress_to_ready',
+            progress_to_cooking: 'revert_to_previous',
+            progress_to_ready: 'revert_to_previous',
+            progress_to_delivered: 'revert_to_previous',
         };
-        return reverse[method] || 'cancel_ticket';
+        return reverse[method] || 'revert_to_previous';
     }
 
     async printTicket(ev, ticket) {
@@ -512,6 +564,36 @@ class KitchenScreenDashboard extends Component {
         }
     }
 
+    async onCardPrevious(ev, ticket) {
+        ev.stopPropagation();
+        const reverseMap = {
+            delivered: 'ready',
+            ready: 'cooking',
+            cooking: 'pending',
+        };
+        const prev = reverseMap[ticket.state];
+        if (!prev) return;
+
+        const prevState = ticket.state;
+        ticket.state = prev;
+        ticket.optimistic = true;
+        this.state.tickets = [...this.state.tickets];
+        this._recomputeDerived();
+
+        try {
+            await this.orm.call("pos.kitchen.ticket", "revert_to_previous", [ticket.id]);
+            ticket.optimistic = false;
+            this.state.tickets = [...this.state.tickets];
+        } catch (error) {
+            ticket.state = prevState;
+            ticket.optimistic = false;
+            ticket.syncError = true;
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
+            console.error("Error reverting ticket:", error);
+        }
+    }
+
     async cancelTicket(e) {
         const ticketId = Number(e.target.value);
         const ticket = this.state.tickets.find(t => t.id === ticketId);
@@ -519,15 +601,22 @@ class KitchenScreenDashboard extends Component {
 
         const prevState = ticket.state;
         const prevPaymentStatus = ticket.payment_status;
+        const orderId = ticket.origin_pos_order_id;
         ticket.state = 'cancelled';
+        (ticket.lines || []).forEach(l => { l.state = 'cancelled'; });
         this.state.tickets = [...this.state.tickets];
         this._recomputeDerived();
+        if (orderId) this._pendingCancels.add(orderId);
 
         const undoAction = () => {
             ticket.state = prevState;
             ticket.payment_status = prevPaymentStatus;
+            (ticket.lines || []).forEach(l => {
+                // We don't have per-line previous state stored, so just reload
+            });
             this.state.tickets = [...this.state.tickets];
             this._recomputeDerived();
+            if (orderId) this._pendingCancels.delete(orderId);
             return Promise.resolve();
         };
 
@@ -540,6 +629,8 @@ class KitchenScreenDashboard extends Component {
             this.state.tickets = [...this.state.tickets];
             this._recomputeDerived();
             console.error("Error cancelling ticket:", error);
+        } finally {
+            if (orderId) this._pendingCancels.delete(orderId);
         }
     }
 
@@ -562,14 +653,39 @@ class KitchenScreenDashboard extends Component {
         const method = methodMap[line.state] || 'action_cooking';
 
         const prevState = line.state;
+        const ticket = this.state.tickets.find(t =>
+            (t.lines || []).some(l => l.id === line.id)
+        );
+
         line.state = next;
-        this.state.tickets = [...this.state.tickets];
-        this._recomputeDerived();
+        if (ticket) {
+            ticket.state = _deriveTicketState(ticket);
+            // If ticket just left the current tab, keep it visible briefly
+            const stage = this.state.stages;
+            const hasLinesInStage = (ticket.lines || []).some(l => l.state === stage && l.state !== 'cancelled');
+            if (!hasLinesInStage && prevState !== 'cancelled') {
+                this.state.transitioningTickets.add(ticket.id);
+                this.state.tickets = [...this.state.tickets];
+                this._recomputeDerived();
+                setTimeout(() => {
+                    this.state.transitioningTickets.delete(ticket.id);
+                    this.state.tickets = [...this.state.tickets];
+                    this._recomputeDerived();
+                }, CARD_TRANSITION_MS);
+            } else {
+                this.state.tickets = [...this.state.tickets];
+                this._recomputeDerived();
+            }
+        } else {
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
+        }
 
         try {
             await this.orm.call("pos.kitchen.ticket.line", method, [line.id]);
         } catch (error) {
             line.state = prevState;
+            if (ticket) ticket.state = _deriveTicketState(ticket);
             this.state.tickets = [...this.state.tickets];
             this._recomputeDerived();
             console.error("Error updating line:", error);
@@ -580,6 +696,10 @@ class KitchenScreenDashboard extends Component {
         ev.stopPropagation();
         const prevState = line.state;
         line.state = 'cancelled';
+        const ticket = this.state.tickets.find(t =>
+            (t.lines || []).some(l => l.id === line.id)
+        );
+        if (ticket) ticket.state = _deriveTicketState(ticket);
         this.state.tickets = [...this.state.tickets];
         this._recomputeDerived();
 
@@ -587,9 +707,41 @@ class KitchenScreenDashboard extends Component {
             await this.orm.call("pos.kitchen.ticket.line", "action_cancel", [line.id]);
         } catch (error) {
             line.state = prevState;
+            if (ticket) ticket.state = _deriveTicketState(ticket);
             this.state.tickets = [...this.state.tickets];
             this._recomputeDerived();
             console.error("Error cancelling line:", error);
+        }
+    }
+
+    async onLinePrevious(ev, line) {
+        ev.stopPropagation();
+        const reverseMap = {
+            pending: 'pending',
+            cooking: 'pending',
+            ready: 'cooking',
+            cancelled: 'ready',
+        };
+        const prev = reverseMap[line.state] || line.state;
+        if (prev === line.state) return;
+
+        const prevState = line.state;
+        line.state = prev;
+        const ticket = this.state.tickets.find(t =>
+            (t.lines || []).some(l => l.id === line.id)
+        );
+        if (ticket) ticket.state = _deriveTicketState(ticket);
+        this.state.tickets = [...this.state.tickets];
+        this._recomputeDerived();
+
+        try {
+            await this.orm.call("pos.kitchen.ticket.line", "action_previous", [line.id]);
+        } catch (error) {
+            line.state = prevState;
+            if (ticket) ticket.state = _deriveTicketState(ticket);
+            this.state.tickets = [...this.state.tickets];
+            this._recomputeDerived();
+            console.error("Error reverting line:", error);
         }
     }
 

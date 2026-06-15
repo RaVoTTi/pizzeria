@@ -30,6 +30,8 @@ patch(ControlButtons.prototype, {
         const order = this.pos.getOrder();
         if (order) {
             order.order_type = type;
+            order.is_takeaway = (type === 'retira' || type === 'delivery');
+            order.is_dine_in = (type === 'mesa');
         }
     },
 });

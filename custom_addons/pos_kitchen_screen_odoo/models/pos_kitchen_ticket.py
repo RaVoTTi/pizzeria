@@ -116,15 +116,21 @@ class PosKitchenTicket(models.Model):
 
     def _sync_state_from_lines(self):
         self.ensure_one()
-        if not self.line_ids:
+        # Collect line states from base ticket AND all sibling tickets
+        all_lines = self.line_ids
+        for sibling in self._get_sibling_tickets():
+            all_lines |= sibling.line_ids
+        if not all_lines:
             return
-        line_states = set(self.line_ids.mapped("state"))
+        line_states = set(all_lines.mapped("state"))
         if not line_states or line_states == {"cancelled"}:
             new_state = "cancelled"
         elif line_states <= {"delivered", "cancelled"} and "delivered" in line_states:
             new_state = "delivered"
         elif line_states <= {"ready", "cancelled"} and "ready" in line_states:
             new_state = "ready"
+        elif "pending" in line_states:
+            new_state = "pending"
         elif "cooking" in line_states:
             new_state = "cooking"
         else:
@@ -140,12 +146,25 @@ class PosKitchenTicket(models.Model):
             elif new_state == "cancelled":
                 self._notify_kitchen("pos_order_cancelled")
 
+    def _get_sibling_tickets(self):
+        """Return all non-base, non-cancelled tickets for the same order."""
+        self.ensure_one()
+        return self.search([
+            ("origin_pos_order_id", "=", self.origin_pos_order_id.id),
+            ("ticket_type", "in", ["addition", "cancellation"]),
+            ("state", "not in", ["cancelled", "delivered"]),
+        ])
+
     def progress_to_cooking(self):
         self.ensure_one()
         self.state = "cooking"
         self.started_at = fields.Datetime.now()
         pending_lines = self.line_ids.filtered(lambda l: l.state == "pending")
         pending_lines.write({"state": "cooking"})
+        for sibling in self._get_sibling_tickets():
+            sibling_pending = sibling.line_ids.filtered(lambda l: l.state == "pending")
+            if sibling_pending:
+                sibling_pending.write({"state": "cooking"})
         self._notify_kitchen("pos_order_accepted")
         return True
 
@@ -153,8 +172,12 @@ class PosKitchenTicket(models.Model):
         self.ensure_one()
         self.state = "ready"
         self.ready_at = fields.Datetime.now()
-        active_lines = self.line_ids.filtered(lambda l: l.state in ("pending", "cooking"))
-        active_lines.write({"state": "ready"})
+        cooking_lines = self.line_ids.filtered(lambda l: l.state == "cooking")
+        cooking_lines.write({"state": "ready"})
+        for sibling in self._get_sibling_tickets():
+            sibling_cooking = sibling.line_ids.filtered(lambda l: l.state == "cooking")
+            if sibling_cooking:
+                sibling_cooking.write({"state": "ready"})
         self._notify_kitchen("pos_order_completed")
 
     def progress_to_delivered(self):
@@ -168,7 +191,36 @@ class PosKitchenTicket(models.Model):
         self.state = "cancelled"
         active_lines = self.line_ids.filtered(lambda l: l.state != "cancelled")
         active_lines.write({"state": "cancelled"})
+        for sibling in self._get_sibling_tickets():
+            sibling_active = sibling.line_ids.filtered(lambda l: l.state != "cancelled")
+            if sibling_active:
+                sibling_active.write({"state": "cancelled"})
+            sibling.state = "cancelled"
         self._notify_kitchen("pos_order_cancelled")
+
+    def revert_to_previous(self):
+        self.ensure_one()
+        reverse_map = {
+            "delivered": "ready",
+            "ready": "cooking",
+            "cooking": "pending",
+        }
+        new_state = reverse_map.get(self.state)
+        if not new_state:
+            return
+        self.state = new_state
+        # Revert sibling lines too
+        line_reverse = {
+            "ready": ("cooking", "ready"),
+            "cooking": ("pending", "cooking"),
+        }
+        revert_from, revert_to = line_reverse.get(new_state, (None, None))
+        if revert_from:
+            for ticket in [self] + list(self._get_sibling_tickets()):
+                affected = ticket.line_ids.filtered(lambda l: l.state == revert_from)
+                if affected:
+                    affected.write({"state": revert_to})
+        self._notify_kitchen("pos_order_updated")
 
     def _get_oven_capacity(self):
         ks = self.env["kitchen.screen"].search(
@@ -232,7 +284,12 @@ class PosKitchenTicket(models.Model):
 
     @api.model
     def get_details(self, shop_id):
-        tickets = self.search([
+        """Return active tickets grouped by POS order (one card per table).
+
+        Addition and cancellation tickets are merged into the original card.
+        Lines from addition tickets get is_new=True for visual highlighting.
+        """
+        all_tickets = self.search([
             ("pos_config_id", "=", shop_id),
             ("state", "not in", ["delivered", "cancelled"]),
         ], order="create_date desc")
@@ -240,118 +297,215 @@ class PosKitchenTicket(models.Model):
         CATEGORY_ORDER = ["Pizza", "Empanada", "Bebida", "Otro"]
         CATEGORY_LABELS = {"Pizza": "PIZZAS", "Empanada": "EMPANADAS", "Bebida": "BEBIDAS", "Otro": "OTROS"}
 
+        def _serialize_line(l, is_new):
+            cat = self._get_product_category(l.product_id)
+            return {
+                "id": l.id,
+                "product_id": l.product_id.id,
+                "pos_order_line_id": l.pos_order_line_id.id,
+                "full_product_name": l.full_product_name,
+                "qty_total": l.qty_total,
+                "qty_sent": l.qty_sent,
+                "qty_ready": l.qty_ready,
+                "qty_cancelled": l.qty_cancelled,
+                "note": _extract_note_text(l.note),
+                "state": l.state,
+                "product_category": l.product_category or "",
+                "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
+                "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
+                "modified": l.note_modified,
+                "modified_at": l.note_modified_at,
+                "is_new": is_new,
+            }
+
+        _serialize_line.categories = set()
+
+        # Group tickets by POS order
+        order_map = {}   # order_id -> {"base": ticket, "additions": [ticket], "cancellations": [ticket]}
+        for ticket in all_tickets:
+            oid = ticket.origin_pos_order_id.id
+            if oid not in order_map:
+                order_map[oid] = {"base": None, "additions": [], "cancellations": []}
+            if ticket.ticket_type == "new":
+                order_map[oid]["base"] = ticket
+            elif ticket.ticket_type == "addition":
+                order_map[oid]["additions"].append(ticket)
+            elif ticket.ticket_type == "cancellation":
+                order_map[oid]["cancellations"].append(ticket)
+
         result = []
-        all_categories = set()
-        for ticket in tickets:
+        for oid, group in order_map.items():
+            base = group["base"]
+            if not base:
+                continue
+
+            # Collect pos_order_line_ids cancelled by cancellation tickets
+            cancelled_pol_ids = set()
+            for ct in group["cancellations"]:
+                cancelled_pol_ids.update(ct.line_ids.mapped("pos_order_line_id.id"))
+
+            # Build merged line list:
+            # 1. Base ticket lines (skip those fully cancelled)
+            # 2. Addition ticket lines (skip cancelled)
+            # 3. Reduce effective qty by cancellation amounts
+            pol_cancelled_qty = {}  # pos_order_line_id -> cancelled qty sum
+            for ct in group["cancellations"]:
+                for cl in ct.line_ids:
+                    pid = cl.pos_order_line_id.id
+                    pol_cancelled_qty[pid] = pol_cancelled_qty.get(pid, 0) + cl.qty_total
+
             lines = []
-            for l in ticket.line_ids:
-                cat = self._get_product_category(l.product_id)
-                lines.append({
-                    "id": l.id,
-                    "product_id": l.product_id.id,
-                    "pos_order_line_id": l.pos_order_line_id.id,
-                    "full_product_name": l.full_product_name,
-                    "qty_total": l.qty_total,
-                    "qty_sent": l.qty_sent,
-                    "qty_ready": l.qty_ready,
-                    "qty_cancelled": l.qty_cancelled,
-                    "note": _extract_note_text(l.note),
-                    "state": l.state,
-                    "product_category": l.product_category or "",
-                    "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
-                    "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
-                    "modified": l.note_modified,
-                    "modified_at": l.note_modified_at,
-                })
-                if cat:
-                    all_categories.add(cat)
+            seen_pol_ids = set()
+
+            def _add_line(l, is_new):
+                pid = l.pos_order_line_id.id
+                if pid in seen_pol_ids:
+                    return
+                seen_pol_ids.add(pid)
+                cancelled = pol_cancelled_qty.get(pid, 0)
+                effective = l.qty_total - cancelled
+                if effective <= 0:
+                    return
+                data = _serialize_line(l, is_new)
+                if cancelled > 0:
+                    data["qty_total"] = effective
+                    data["qty_cancelled"] = cancelled
+                lines.append(data)
+
+            for l in base.line_ids:
+                _add_line(l, is_new=False)
+
+            for at in group["additions"]:
+                for l in at.line_ids:
+                    _add_line(l, is_new=True)
+
             lines.sort(key=lambda x: (x["category_sort"], x["full_product_name"]))
+
+            # Collect categories from serialized lines
+            for l in lines:
+                cat = l.get("product_category", "")
+                if cat:
+                    _serialize_line.categories.add(cat)
+
             result.append({
-                "id": ticket.id,
-                "origin_pos_order_id": ticket.origin_pos_order_id.id,
-                "pos_reference": ticket.pos_reference,
-                "order_name": ticket.order_name,
-                "ticket_type": ticket.ticket_type,
-                "batch_letter": ticket.batch_letter,
-                "sequence": ticket.sequence,
-                "state": ticket.state,
-                "payment_status": ticket.payment_status,
-                "order_type": ticket.order_type or "mesa",
-                "table_id": ticket.table_id.id if ticket.table_id else False,
-                "table_name": ticket.table_id.display_name if ticket.table_id else "",
-                "partner_name": ticket.partner_id.display_name if ticket.partner_id else "",
-                "date_order": ticket.create_date,
-                "requested_time": ticket.requested_time or False,
+                "id": base.id,
+                "origin_pos_order_id": base.origin_pos_order_id.id,
+                "pos_reference": base.pos_reference,
+                "order_name": base.order_name,
+                "ticket_type": base.ticket_type,
+                "batch_letter": base.batch_letter,
+                "sequence": base.sequence,
+                "state": base.state,
+                "payment_status": base.payment_status,
+"order_type": base.order_type or "retira",
+                "table_id": base.table_id.id if base.table_id else False,
+                "table_name": base.table_id.display_name if base.table_id else "",
+                "partner_name": base.partner_id.display_name if base.partner_id else "",
+                "date_order": base.create_date,
+                "requested_time": base.requested_time or False,
                 "lines": lines,
-                "config_id": ticket.pos_config_id.id,
-                "session_id": ticket.session_id.id if ticket.session_id else False,
+                "config_id": base.pos_config_id.id,
+                "session_id": base.session_id.id if base.session_id else False,
             })
 
-        stations = [{"id": cat, "name": cat} for cat in sorted(all_categories)]
+        stations = [{"id": cat, "name": cat} for cat in sorted(_serialize_line.categories)]
         return {"tickets": result, "stations": stations}
 
     @api.model
     def get_details_for_order(self, shop_id, order_id):
-        """Return serialized tickets for a single POS order.
-
-        Used by the KDS for per-order targeted reloads instead of
-        re-fetching all active tickets.
-        """
-        tickets = self.search([
+        """Return merged card for a single POS order (same merge logic as get_details)."""
+        all_tickets = self.search([
             ("pos_config_id", "=", shop_id),
             ("origin_pos_order_id", "=", order_id),
             ("state", "not in", ["delivered", "cancelled"]),
         ], order="create_date desc")
 
+        if not all_tickets:
+            return {"tickets": []}
+
         CATEGORY_ORDER = ["Pizza", "Empanada", "Bebida", "Otro"]
         CATEGORY_LABELS = {"Pizza": "PIZZAS", "Empanada": "EMPANADAS", "Bebida": "BEBIDAS", "Otro": "OTROS"}
 
-        result = []
-        for ticket in tickets:
-            lines = []
-            for l in ticket.line_ids:
-                cat = self._get_product_category(l.product_id)
-                lines.append({
-                    "id": l.id,
-                    "product_id": l.product_id.id,
-                    "pos_order_line_id": l.pos_order_line_id.id,
-                    "full_product_name": l.full_product_name,
-                    "qty_total": l.qty_total,
-                    "qty_sent": l.qty_sent,
-                    "qty_ready": l.qty_ready,
-                    "qty_cancelled": l.qty_cancelled,
-                    "note": _extract_note_text(l.note),
-                    "state": l.state,
-                    "product_category": l.product_category or "",
-                    "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
-                    "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
-                    "modified": l.note_modified,
-                    "modified_at": l.note_modified_at,
-                })
-            lines.sort(key=lambda x: (x["category_sort"], x["full_product_name"]))
-            result.append({
-                "id": ticket.id,
-                "origin_pos_order_id": ticket.origin_pos_order_id.id,
-                "pos_reference": ticket.pos_reference,
-                "order_name": ticket.order_name,
-                "ticket_type": ticket.ticket_type,
-                "batch_letter": ticket.batch_letter,
-                "sequence": ticket.sequence,
-                "state": ticket.state,
-                "payment_status": ticket.payment_status,
-                "order_type": ticket.order_type or "mesa",
-                "table_id": ticket.table_id.id if ticket.table_id else False,
-                "table_name": ticket.table_id.display_name if ticket.table_id else "",
-                "partner_name": ticket.partner_id.display_name if ticket.partner_id else "",
-                "date_order": ticket.create_date,
-                "requested_time": ticket.requested_time or False,
-                "lines": lines,
-                "config_id": ticket.pos_config_id.id,
-                "session_id": ticket.session_id.id if ticket.session_id else False,
-            })
+        def _serialize_line(l, is_new):
+            cat = self._get_product_category(l.product_id)
+            return {
+                "id": l.id, "product_id": l.product_id.id,
+                "pos_order_line_id": l.pos_order_line_id.id,
+                "full_product_name": l.full_product_name,
+                "qty_total": l.qty_total, "qty_sent": l.qty_sent,
+                "qty_ready": l.qty_ready, "qty_cancelled": l.qty_cancelled,
+                "note": _extract_note_text(l.note), "state": l.state,
+                "product_category": l.product_category or "",
+                "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
+                "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
+                "modified": l.note_modified, "modified_at": l.note_modified_at,
+                "is_new": is_new,
+            }
 
-        _logger.info("[KITCHEN] get_details_for_order: order=%s, %d tickets returned", order_id, len(result))
-        return {"tickets": result}
+        base = None
+        additions = []
+        cancellations = []
+        for t in all_tickets:
+            if t.ticket_type == "new":
+                base = t
+            elif t.ticket_type == "addition":
+                additions.append(t)
+            elif t.ticket_type == "cancellation":
+                cancellations.append(t)
+
+        if not base:
+            return {"tickets": []}
+
+        cancelled_pol_ids = set()
+        pol_cancelled_qty = {}
+        for ct in cancellations:
+            for cl in ct.line_ids:
+                pid = cl.pos_order_line_id.id
+                cancelled_pol_ids.add(pid)
+                pol_cancelled_qty[pid] = pol_cancelled_qty.get(pid, 0) + cl.qty_total
+
+        lines = []
+        seen_pol_ids = set()
+
+        def _add_line(l, is_new):
+            pid = l.pos_order_line_id.id
+            if pid in seen_pol_ids:
+                return
+            seen_pol_ids.add(pid)
+            cancelled = pol_cancelled_qty.get(pid, 0)
+            effective = l.qty_total - cancelled
+            if effective <= 0:
+                return
+            data = _serialize_line(l, is_new)
+            if cancelled > 0:
+                data["qty_total"] = effective
+                data["qty_cancelled"] = cancelled
+            lines.append(data)
+
+        for l in base.line_ids:
+            _add_line(l, is_new=False)
+
+        for at in additions:
+            for l in at.line_ids:
+                _add_line(l, is_new=True)
+
+        lines.sort(key=lambda x: (x["category_sort"], x["full_product_name"]))
+
+        return {"tickets": [{
+            "id": base.id, "origin_pos_order_id": base.origin_pos_order_id.id,
+            "pos_reference": base.pos_reference, "order_name": base.order_name,
+            "ticket_type": base.ticket_type, "batch_letter": base.batch_letter,
+            "sequence": base.sequence, "state": base.state,
+            "payment_status": base.payment_status,
+            "order_type": base.order_type or "retira",
+            "table_id": base.table_id.id if base.table_id else False,
+            "table_name": base.table_id.display_name if base.table_id else "",
+            "partner_name": base.partner_id.display_name if base.partner_id else "",
+            "date_order": base.create_date,
+            "requested_time": base.requested_time or False,
+            "lines": lines, "config_id": base.pos_config_id.id,
+            "session_id": base.session_id.id if base.session_id else False,
+        }]}
 
     @api.model
     def get_or_create_ticket(self, pos_order):
@@ -649,6 +803,21 @@ class PosKitchenTicketLine(models.Model):
             "cancelled": "pending",
         }
         new_state = cycle.get(self.state, "pending")
+        self.state = new_state
+        self.ticket_id._sync_state_from_lines()
+        self.ticket_id._notify_kitchen("pos_order_line_updated", line_id=self.id, new_status=new_state)
+
+    def action_previous(self):
+        self.ensure_one()
+        reverse_cycle = {
+            "pending": "pending",       # no previous from start
+            "cooking": "pending",
+            "ready": "cooking",
+            "cancelled": "ready",
+        }
+        new_state = reverse_cycle.get(self.state, self.state)
+        if new_state == self.state:
+            return
         self.state = new_state
         self.ticket_id._sync_state_from_lines()
         self.ticket_id._notify_kitchen("pos_order_line_updated", line_id=self.id, new_status=new_state)

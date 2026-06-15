@@ -79,7 +79,7 @@
                             t-att-class="state.stages === 'delivered' ? 'kds-tab kds-tab--active' : 'kds-tab'"
                             t-att-data-state="'delivered'"
                             t-on-click="() => this.deliveredStage()">
-                        <t t-esc="'Delivery'"/>
+                        Entregado
                         <span class="kds-count-badge"><t t-esc="state.delivered_count"/></span>
                     </button>
                 </div>
@@ -87,7 +87,6 @@
                 <!-- ========== TICKET GRID ========== -->
                 <div class="kds-grid">
                     <t t-foreach="state.sortedTickets" t-as="ticket" t-key="ticket.id">
-                        <t t-if="ticket.state == state.stages">
                             <t t-set="elapsedColor" t-value="this.getElapsedColor(ticket)"/>
                             <t t-set="elapsedMins" t-value="this.getElapsedMinutes(ticket)"/>
                             <t t-set="ticketType" t-value="this.getTicketType(ticket)"/>
@@ -108,11 +107,14 @@
                                         <div class="kds-header-identity">
                                             <span class="kds-order-id">#<t t-esc="(ticket.sequence || 'KT-0001').replace('KT-', '')"/><t t-esc="ticket.batch_letter || 'A'"/></span>
                                             <span class="kds-header-dot">•</span>
-                                            <t t-if="ticket.order_type === 'mesa'">
+                                            <t t-if="partner">
+                                                <span class="kds-customer-name"><t t-esc="partner"/></span>
+                                            </t>
+                                            <t t-elif="ticket.order_type === 'mesa'">
                                                 <span class="kds-customer-name">MESA <t t-esc="ticket.table_name"/></span>
                                             </t>
-                                            <t t-elif="partner">
-                                                <span class="kds-customer-name"><t t-esc="partner"/></span>
+                                            <t t-elif="ticket.order_type === 'delivery'">
+                                                <span class="kds-customer-name">DELIVERY</span>
                                             </t>
                                             <t t-else="">
                                                 <span class="kds-customer-name">RETIRO</span>
@@ -170,12 +172,21 @@
                                         </t>
 
                                         <div class="kds-line"
-                                             t-att-class="line.state === 'ready' ? 'kds-line kds-line--ready' : line.state === 'cancelled' ? 'kds-line kds-line--cancelled' : 'kds-line'"
+                                             t-att-class="'kds-line'
+                                                + (line.state === 'ready' ? ' kds-line--ready' : '')
+                                                + (line.state === 'cancelled' ? ' kds-line--cancelled' : '')
+                                                + (line.is_new ? ' kds-line--new' : '')
+                                                + (line.state !== state.stages ? ' kds-line--dimmed' : '')"
                                              t-on-click.stop="(e) => this.onLineClick(e, line)">
 
                                             <span class="qty"><t t-esc="line.qty_total"/>x</span>
 
                                             <span class="product-name"><t t-esc="line.full_product_name"/></span>
+
+                                            <!-- NUEVO Badge -->
+                                            <t t-if="line.is_new">
+                                                <span class="kds-line-status kds-line-status--new">NUEVO</span>
+                                            </t>
 
                                             <!-- Line Status Badge -->
                                             <span t-att-class="line.state === 'pending' ? 'kds-line-status kds-line-status--pending' : line.state === 'cooking' ? 'kds-line-status kds-line-status--cooking' : line.state === 'ready' ? 'kds-line-status kds-line-status--ready' : 'kds-line-status kds-line-status--cancelled'">
@@ -188,6 +199,14 @@
                                                 <button class="kds-line-btn-ack"
                                                         t-on-click.stop="(e) => this.acknowledgeModification(e, line)">
                                                     OK
+                                                </button>
+                                            </t>
+
+                                            <!-- Previous Step Button -->
+                                            <t t-if="line.state !== 'pending' and line.state !== 'cancelled'">
+                                                <button class="kds-line-btn-prev"
+                                                        t-on-click.stop="(e) => this.onLinePrevious(e, line)">
+                                                    &#8592;
                                                 </button>
                                             </t>
 
@@ -219,21 +238,26 @@
                                     </t>
                                 </div>
 
-                                <!-- Footer with Print + Cancel Buttons -->
+                                <!-- Footer with Previous + Print + Cancel Buttons -->
                                 <div class="kds-card-footer">
+                                    <button class="kds-btn-prev"
+                                            t-if="ticket.state !== 'pending' and ticket.state !== 'cancelled'"
+                                            t-on-click.stop="(e) => this.onCardPrevious(e, ticket)">
+                                        &#8592; Anterior
+                                    </button>
                                     <button class="kds-btn-print"
                                             t-att-value="ticket.id"
                                             t-on-click.stop="(e) => this.printTicket(e, ticket)">
                                         Imprimir
                                     </button>
                                     <button class="kds-btn-cancel"
+                                            t-if="ticket.state !== 'cancelled'"
                                             t-att-value="ticket.id"
                                             t-on-click.stop="(e) => this.cancelTicket(e)">
                                         Cancelar Ticket
                                     </button>
                                 </div>
                             </div>
-                        </t>
                     </t>
                 </div>
 
