@@ -98,16 +98,20 @@ class PosKitchenTicket(models.Model):
         ('retira', 'Retira'),
     ], string="Tipo de Orden")
 
-    def _notify_kitchen(self, message_type):
+    def _notify_kitchen(self, message_type, line_id=None, **kwargs):
         self.ensure_one()
-        msg = {
-            "res_model": self._name,
-            "message": message_type,
-            "ticket_id": self.id,
-            "config_id": self.pos_config_id.id,
-        }
         channel = f"pos_kitchen.{self.pos_config_id.id}"
-        _logger.info("[KITCHEN] Bus notify channel=%s message=%s ticket_id=%s", channel, message_type, self.id)
+        msg = {
+            "message": message_type,
+            "order_id": self.origin_pos_order_id.id,
+            "config_id": self.pos_config_id.id,
+            "ticket_id": self.id,
+        }
+        if line_id:
+            msg["line_id"] = line_id
+        msg.update(kwargs)
+        _logger.info("[KITCHEN] Bus notify channel=%s message=%s order=%s ticket=%s",
+                     channel, message_type, msg["order_id"], self.id)
         self.env["bus.bus"]._sendone(channel, "notification", msg)
 
     def _sync_state_from_lines(self):
@@ -204,14 +208,7 @@ class PosKitchenTicket(models.Model):
             return
         line.state = "cooking"
         self._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.pos_config_id.id}", "notification", {
-                "res_model": "pos.kitchen.ticket.line",
-                "message": "pos_order_line_cooking",
-                "line_id": line.id,
-                "ticket_id": self.id,
-                "config_id": self.pos_config_id.id,
-            })
+        self._notify_kitchen("pos_order_line_cooking", line_id=line.id)
 
     def action_line_ready(self, line_id):
         line = self.env["pos.kitchen.ticket.line"].browse(line_id)
@@ -221,14 +218,7 @@ class PosKitchenTicket(models.Model):
             return
         line.state = "ready"
         self._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.pos_config_id.id}", "notification", {
-                "res_model": "pos.kitchen.ticket.line",
-                "message": "pos_order_line_ready",
-                "line_id": line.id,
-                "ticket_id": self.id,
-                "config_id": self.pos_config_id.id,
-            })
+        self._notify_kitchen("pos_order_line_ready", line_id=line.id)
 
     def action_line_cancel(self, line_id):
         line = self.env["pos.kitchen.ticket.line"].browse(line_id)
@@ -238,14 +228,7 @@ class PosKitchenTicket(models.Model):
             return
         line.state = "cancelled"
         self._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.pos_config_id.id}", "notification", {
-                "res_model": "pos.kitchen.ticket.line",
-                "message": "pos_order_line_cancelled",
-                "line_id": line.id,
-                "ticket_id": self.id,
-                "config_id": self.pos_config_id.id,
-            })
+        self._notify_kitchen("pos_order_line_cancelled", line_id=line.id)
 
     @api.model
     def get_details(self, shop_id):
@@ -306,6 +289,69 @@ class PosKitchenTicket(models.Model):
 
         stations = [{"id": cat, "name": cat} for cat in sorted(all_categories)]
         return {"tickets": result, "stations": stations}
+
+    @api.model
+    def get_details_for_order(self, shop_id, order_id):
+        """Return serialized tickets for a single POS order.
+
+        Used by the KDS for per-order targeted reloads instead of
+        re-fetching all active tickets.
+        """
+        tickets = self.search([
+            ("pos_config_id", "=", shop_id),
+            ("origin_pos_order_id", "=", order_id),
+            ("state", "not in", ["delivered", "cancelled"]),
+        ], order="create_date desc")
+
+        CATEGORY_ORDER = ["Pizza", "Empanada", "Bebida", "Otro"]
+        CATEGORY_LABELS = {"Pizza": "PIZZAS", "Empanada": "EMPANADAS", "Bebida": "BEBIDAS", "Otro": "OTROS"}
+
+        result = []
+        for ticket in tickets:
+            lines = []
+            for l in ticket.line_ids:
+                cat = self._get_product_category(l.product_id)
+                lines.append({
+                    "id": l.id,
+                    "product_id": l.product_id.id,
+                    "pos_order_line_id": l.pos_order_line_id.id,
+                    "full_product_name": l.full_product_name,
+                    "qty_total": l.qty_total,
+                    "qty_sent": l.qty_sent,
+                    "qty_ready": l.qty_ready,
+                    "qty_cancelled": l.qty_cancelled,
+                    "note": _extract_note_text(l.note),
+                    "state": l.state,
+                    "product_category": l.product_category or "",
+                    "category_label": CATEGORY_LABELS.get(cat, "OTROS"),
+                    "category_sort": CATEGORY_ORDER.index(cat) if cat in CATEGORY_ORDER else 99,
+                    "modified": l.note_modified,
+                    "modified_at": l.note_modified_at,
+                })
+            lines.sort(key=lambda x: (x["category_sort"], x["full_product_name"]))
+            result.append({
+                "id": ticket.id,
+                "origin_pos_order_id": ticket.origin_pos_order_id.id,
+                "pos_reference": ticket.pos_reference,
+                "order_name": ticket.order_name,
+                "ticket_type": ticket.ticket_type,
+                "batch_letter": ticket.batch_letter,
+                "sequence": ticket.sequence,
+                "state": ticket.state,
+                "payment_status": ticket.payment_status,
+                "order_type": ticket.order_type or "mesa",
+                "table_id": ticket.table_id.id if ticket.table_id else False,
+                "table_name": ticket.table_id.display_name if ticket.table_id else "",
+                "partner_name": ticket.partner_id.display_name if ticket.partner_id else "",
+                "date_order": ticket.create_date,
+                "requested_time": ticket.requested_time or False,
+                "lines": lines,
+                "config_id": ticket.pos_config_id.id,
+                "session_id": ticket.session_id.id if ticket.session_id else False,
+            })
+
+        _logger.info("[KITCHEN] get_details_for_order: order=%s, %d tickets returned", order_id, len(result))
+        return {"tickets": result}
 
     @api.model
     def get_or_create_ticket(self, pos_order):
@@ -402,6 +448,10 @@ class PosKitchenTicket(models.Model):
             ("origin_pos_order_id", "=", pos_order.id),
         ])
         used_letters = set(existing_tickets.mapped("batch_letter"))
+        base_ticket = existing_tickets.filtered(lambda t: t.ticket_type == "new")
+        base_sequence = base_ticket.sequence if base_ticket else (
+            self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
+        )
         tickets_created = []
 
         for order_line in pos_order.lines:
@@ -439,7 +489,7 @@ class PosKitchenTicket(models.Model):
                     "note_modified": True,
                     "note_modified_at": fields.Datetime.now(),
                 })
-                existing_kitchen_line.ticket_id._notify_kitchen("pos_order_line_modified")
+                existing_kitchen_line.ticket_id._notify_kitchen("pos_order_line_modified", line_id=existing_kitchen_line.id)
 
             if delta == 0:
                 _logger.info("[KITCHEN]   line %s: delta=0, skipping", order_line.product_id.name)
@@ -449,12 +499,11 @@ class PosKitchenTicket(models.Model):
                 _logger.info("[KITCHEN]   line %s: delta>0 (+%s), creating ADDITION ticket", order_line.product_id.name, delta)
                 next_letter = self._next_batch_letter(used_letters)
                 used_letters.add(next_letter)
-                sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
                 payment_status = "paid" if pos_order.state == "paid" else "not_paid"
 
                 ticket = self.create({
                     "origin_pos_order_id": pos_order.id,
-                    "sequence": sequence,
+                    "sequence": base_sequence,
                     "ticket_type": "addition",
                     "batch_letter": next_letter,
                     "state": "pending",
@@ -482,12 +531,11 @@ class PosKitchenTicket(models.Model):
                 _logger.info("[KITCHEN]   line %s: delta<0 (%s), creating CANCELLATION ticket", order_line.product_id.name, delta)
                 next_letter = self._next_batch_letter(used_letters)
                 used_letters.add(next_letter)
-                sequence = self.env["ir.sequence"].next_by_code("kitchen.ticket") or "KITCHEN-0001"
                 payment_status = "paid" if pos_order.state == "paid" else "not_paid"
 
                 ticket = self.create({
                     "origin_pos_order_id": pos_order.id,
-                    "sequence": sequence,
+                    "sequence": base_sequence,
                     "ticket_type": "cancellation",
                     "batch_letter": next_letter,
                     "state": "pending",
@@ -574,14 +622,7 @@ class PosKitchenTicketLine(models.Model):
             return
         self.state = "cooking"
         self.ticket_id._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
-                "res_model": self._name,
-                "message": "pos_order_line_cooking",
-                "line_id": self.id,
-                "ticket_id": self.ticket_id.id,
-                "config_id": self.ticket_id.pos_config_id.id,
-            })
+        self.ticket_id._notify_kitchen("pos_order_line_cooking", line_id=self.id)
 
     def action_ready(self):
         self.ensure_one()
@@ -589,14 +630,7 @@ class PosKitchenTicketLine(models.Model):
             return
         self.state = "ready"
         self.ticket_id._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
-                "res_model": self._name,
-                "message": "pos_order_line_ready",
-                "line_id": self.id,
-                "ticket_id": self.ticket_id.id,
-                "config_id": self.ticket_id.pos_config_id.id,
-            })
+        self.ticket_id._notify_kitchen("pos_order_line_ready", line_id=self.id)
 
     def action_cancel(self):
         self.ensure_one()
@@ -604,14 +638,7 @@ class PosKitchenTicketLine(models.Model):
             return
         self.state = "cancelled"
         self.ticket_id._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
-                "res_model": self._name,
-                "message": "pos_order_line_cancelled",
-                "line_id": self.id,
-                "ticket_id": self.ticket_id.id,
-                "config_id": self.ticket_id.pos_config_id.id,
-            })
+        self.ticket_id._notify_kitchen("pos_order_line_cancelled", line_id=self.id)
 
     def action_toggle(self):
         self.ensure_one()
@@ -624,25 +651,10 @@ class PosKitchenTicketLine(models.Model):
         new_state = cycle.get(self.state, "pending")
         self.state = new_state
         self.ticket_id._sync_state_from_lines()
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
-                "res_model": self._name,
-                "message": "pos_order_line_updated",
-                "line_id": self.id,
-                "ticket_id": self.ticket_id.id,
-                "config_id": self.ticket_id.pos_config_id.id,
-                "new_status": new_state,
-            })
+        self.ticket_id._notify_kitchen("pos_order_line_updated", line_id=self.id, new_status=new_state)
 
     def acknowledge_modification(self):
         self.ensure_one()
         self.note_modified = False
         self.note_modified_at = False
-        self.env["bus.bus"]._sendone(
-            f"pos_kitchen.{self.ticket_id.pos_config_id.id}", "notification", {
-                "res_model": self._name,
-                "message": "pos_order_line_acknowledged",
-                "line_id": self.id,
-                "ticket_id": self.ticket_id.id,
-                "config_id": self.ticket_id.pos_config_id.id,
-            })
+        self.ticket_id._notify_kitchen("pos_order_line_acknowledged", line_id=self.id)

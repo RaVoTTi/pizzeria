@@ -48,6 +48,8 @@ class KitchenScreenDashboard extends Component {
         this.deliveredStage = () => { this.state.stages = 'delivered'; };
 
         this.currentShopId = this.getCurrentShopId();
+        // Channel must match KITCHEN_BUS_CHANNEL in models/pos_kitchen_sync.py
+        // If these drift apart, real-time push silently breaks.
         this.channel = `pos_kitchen.${this.currentShopId}`;
 
         this.state = useState({
@@ -401,7 +403,31 @@ class KitchenScreenDashboard extends Component {
             'pos_order_line_cooking', 'pos_order_line_ready', 'pos_order_line_cancelled',
             'pos_order_line_modified', 'pos_order_line_acknowledged',
         ];
-        if (relevant.includes(message.message)) this.loadTickets();
+        if (!relevant.includes(message.message)) return;
+
+        if (message.order_id) {
+            this._reloadOrderTickets(message.order_id);
+        } else {
+            this.loadTickets();
+        }
+    }
+
+    async _reloadOrderTickets(orderId) {
+        console.log("[KDS] _reloadOrderTickets: targeting order", orderId);
+        try {
+            const result = await this.orm.call("pos.kitchen.ticket", "get_details_for_order", [this.currentShopId, orderId]);
+            const freshTickets = result.tickets || [];
+            console.log("[KDS] _reloadOrderTickets: received", freshTickets.length, "tickets for order", orderId);
+
+            const otherTickets = this.state.tickets.filter(
+                t => t.origin_pos_order_id !== orderId
+            );
+            this.state.tickets = [...otherTickets, ...freshTickets];
+            this._recomputeDerived();
+        } catch (error) {
+            console.error("[KDS] _reloadOrderTickets: error, falling back to full reload:", error);
+            this.loadTickets();
+        }
     }
 
     onCardClick(ev, ticket) {
