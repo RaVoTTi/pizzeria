@@ -183,9 +183,12 @@
 
                                             <span class="product-name"><t t-esc="line.full_product_name"/></span>
 
-                                            <!-- NUEVO Badge -->
-                                            <t t-if="line.is_new">
+                                            <!-- NUEVO / MODIFICADO Badge -->
+                                            <t t-if="line.is_new and !line.modified">
                                                 <span class="kds-line-status kds-line-status--new">NUEVO</span>
+                                            </t>
+                                            <t t-elif="line.is_new and line.modified">
+                                                <span class="kds-line-status kds-line-status--modified">MODIFICADO</span>
                                             </t>
 
                                             <!-- Line Status Badge -->

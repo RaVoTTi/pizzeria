@@ -209,10 +209,11 @@ class PosKitchenTicket(models.Model):
         if not new_state:
             return
         self.state = new_state
-        # Revert sibling lines too
+        # Revert lines from the state we're leaving back to the target state
         line_reverse = {
-            "ready": ("cooking", "ready"),
-            "cooking": ("pending", "cooking"),
+            "pending": ("cooking", "pending"),
+            "cooking": ("ready", "cooking"),
+            "ready": ("delivered", "ready"),
         }
         revert_from, revert_to = line_reverse.get(new_state, (None, None))
         if revert_from:
